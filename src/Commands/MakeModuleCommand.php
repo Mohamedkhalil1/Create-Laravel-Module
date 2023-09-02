@@ -127,7 +127,7 @@ class MakeModuleCommand extends Command
     {
         $controllerName = "{$this->baseModelName}Controller";
         $controllerDir = base_path("app/Http/Controllers/{$this->namespace}");
-        $controller = File::get(__DIR__ . '/stubs/DummyController.stub');
+        $controller = File::get(__DIR__.'/stubs/DummyController.stub');
         $controller = str_replace('DummyNamespace', $this->namespace, $controller);
         $controller = str_replace('DummyRequest', "{$this->baseModelName}Request", $controller);
         $controller = str_replace('FullyQualifiedDummyModel', $this->model, $controller);
@@ -210,25 +210,25 @@ class MakeModuleCommand extends Command
     private function addRoutes(): void
     {
         $routes = [
-            "Route::resource('{$this->singularSnakeCaseTitle}', \\App\\Http\\Controllers\\{$this->namespace}\\{$this->baseModelName}Controller::class);",];
-        File::append(base_path('routes/api.php'), PHP_EOL . implode(PHP_EOL, $routes));
+            "Route::resource('{$this->singularSnakeCaseTitle}', \\App\\Http\\Controllers\\{$this->namespace}\\{$this->baseModelName}Controller::class);", ];
+        File::append(base_path('routes/api.php'), PHP_EOL.implode(PHP_EOL, $routes));
     }
 
     private function addTranslations(): void
     {
-//        $this->newTranslationWords = array_merge($this->newTranslationWords, [
-//            $this->title->toString(),
-//        ]);
-//        $translations = [];
-//        $langDir = File::exists(resource_path('lang')) ? resource_path('lang') : base_path('lang');
-//        if (File::exists("$langDir/ar.json")) {
-//            $translations = json_decode(File::get("$langDir/ar.json"), true);
-//        }
-//        foreach ($this->newTranslationWords as $word) {
-//            if (!array_key_exists($word, $translations)) {
-//                $translations[$word] = '';
-//            }
-//        }
-//        File::put("$langDir/ar.json", json_encode($translations, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        //        $this->newTranslationWords = array_merge($this->newTranslationWords, [
+        //            $this->title->toString(),
+        //        ]);
+        //        $translations = [];
+        //        $langDir = File::exists(resource_path('lang')) ? resource_path('lang') : base_path('lang');
+        //        if (File::exists("$langDir/ar.json")) {
+        //            $translations = json_decode(File::get("$langDir/ar.json"), true);
+        //        }
+        //        foreach ($this->newTranslationWords as $word) {
+        //            if (!array_key_exists($word, $translations)) {
+        //                $translations[$word] = '';
+        //            }
+        //        }
+        //        File::put("$langDir/ar.json", json_encode($translations, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 }
