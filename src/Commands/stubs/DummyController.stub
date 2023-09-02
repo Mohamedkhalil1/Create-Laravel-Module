@@ -1,0 +1,48 @@
+<?php
+
+namespace App\Http\Controllers\Dashboard\DummyNamespace;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Dashboard\DummyNamespace\DummyRequest;
+use FullyQualifiedDummyModel;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\Response;
+
+class DummyController extends Controller
+{
+    public function index(){
+        $models = Dummy::query()->paginate($this->perPage ?? 10);
+    }
+
+    public function store(DummyRequest $request)
+    {
+        try {
+            Dummy::create($request->validated());
+            return response()->noContent();
+        } catch (\Exception $exception) {
+            report($exception);
+            return response()->noContent(Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    public function update(DummyRequest $request, Dummy $camelCaseDummy)
+    {
+        try {
+            $camelCaseDummy->update($request->validated());
+            return response()->noContent();
+        } catch (\Exception $exception) {
+            report($exception);
+            return response()->noContent(Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    public function delete(Dummy $camelCaseDummy){
+        try {
+            $camelCaseDummy->delete();
+            return response()->noContent();
+        } catch (\Exception $exception) {
+            report($exception);
+            return response()->noContent(Response::HTTP_BAD_REQUEST);
+        }
+    }
+}

@@ -1,17 +1,17 @@
 {
-    "name": ":vendor_slug/:package_slug",
-    "description": ":package_description",
+    "name": "loffy/create-laravel-module",
+    "description": "create module on laravel",
     "keywords": [
-        ":vendor_name",
+        "Mohamed Khalil",
         "laravel",
-        ":package_slug"
+        "create-laravel-module"
     ],
-    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "homepage": "https://github.com/mohamedkhalil/create-laravel-module",
     "license": "MIT",
     "authors": [
         {
-            "name": ":author_name",
-            "email": "author@domain.com",
+            "name": "Mohamedkhalil",
+            "email": "Mohamedkhalil125445@gmail.com",
             "role": "Developer"
         }
     ],
@@ -21,6 +21,7 @@
         "illuminate/contracts": "^10.0"
     },
     "require-dev": {
+        "barryvdh/laravel-ide-helper": "^2.13",
         "laravel/pint": "^1.0",
         "nunomaduro/collision": "^7.8",
         "nunomaduro/larastan": "^2.0.1",
@@ -35,13 +36,13 @@
     },
     "autoload": {
         "psr-4": {
-            "VendorName\\Skeleton\\": "src/",
-            "VendorName\\Skeleton\\Database\\Factories\\": "database/factories/"
+            "Loffy\\CreateLaravelModule\\": "src/",
+            "Loffy\\CreateLaravelModule\\Database\\Factories\\": "database/factories/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "VendorName\\Skeleton\\Tests\\": "tests/",
+            "Loffy\\CreateLaravelModule\\": "tests/",
             "Workbench\\App\\": "workbench/app/"
         }
     },
@@ -72,10 +73,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "VendorName\\Skeleton\\SkeletonServiceProvider"
+                "Loffy\\CreateLaravelModule\\CreateLaravelModuleProvider"
             ],
             "aliases": {
-                "Skeleton": "VendorName\\Skeleton\\Facades\\Skeleton"
+                "Skeleton": "Loffy\\CreateLaravelModuleProvider\\Facades\\CreateLaravelModule"
             }
         }
     },
