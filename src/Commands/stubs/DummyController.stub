@@ -1,11 +1,10 @@
 <?php
 
-namespace App\Http\Controllers\Dashboard\DummyNamespace;
+namespace App\Http\Controllers\DummyNamespace;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Dashboard\DummyNamespace\DummyRequest;
+use App\Http\Requests\DummyNamespace\DummyRequest;
 use FullyQualifiedDummyModel;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\Response;
 
 class DummyController extends Controller

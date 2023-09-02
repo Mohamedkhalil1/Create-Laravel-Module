@@ -69,9 +69,7 @@ class MakeModuleCommand extends Command
     private function checkConfig(): bool
     {
         $files = [
-            base_path('sidebar/index.php'),
-            database_path('seeders/data/permissions.json'),
-            base_path('routes/dashboard.php'),
+            base_path('routes/api.php'),
         ];
         $files = collect($files)
             ->filter(fn ($file) => ! File::exists($file))
@@ -128,8 +126,8 @@ class MakeModuleCommand extends Command
     private function makeController(): void
     {
         $controllerName = "{$this->baseModelName}Controller";
-        $controllerDir = base_path("app/Http/Controllers/Dashboard/{$this->namespace}");
-        $controller = File::get(__DIR__.'/stubs/DummyController.stub');
+        $controllerDir = base_path("app/Http/Controllers/{$this->namespace}");
+        $controller = File::get(__DIR__ . '/stubs/DummyController.stub');
         $controller = str_replace('DummyNamespace', $this->namespace, $controller);
         $controller = str_replace('DummyRequest', "{$this->baseModelName}Request", $controller);
         $controller = str_replace('FullyQualifiedDummyModel', $this->model, $controller);
@@ -152,7 +150,7 @@ class MakeModuleCommand extends Command
     private function makeRequest(): void
     {
         $requestName = "{$this->baseModelName}Request";
-        $requestDir = base_path("app/Http/Requests/Dashboard/{$this->namespace}");
+        $requestDir = base_path("app/Http/Requests/{$this->namespace}");
         $rules = $this->columns->map(function ($column) {
             $rules = [$column->IS_NULLABLE == 'NO' ? "'required'" : "'nullable'"];
             if ($column->COLUMN_NAME == 'email') {
@@ -212,25 +210,25 @@ class MakeModuleCommand extends Command
     private function addRoutes(): void
     {
         $routes = [
-            "Route::resource('{$this->singularSnakeCaseTitle}', \\App\\Http\\Controllers\\Dashboard\\{$this->namespace}\\{$this->baseModelName}Controller::class);", ];
-        File::append(base_path('routes/dashboard.php'), PHP_EOL.implode(PHP_EOL, $routes));
+            "Route::resource('{$this->singularSnakeCaseTitle}', \\App\\Http\\Controllers\\{$this->namespace}\\{$this->baseModelName}Controller::class);",];
+        File::append(base_path('routes/api.php'), PHP_EOL . implode(PHP_EOL, $routes));
     }
 
     private function addTranslations(): void
     {
-        $this->newTranslationWords = array_merge($this->newTranslationWords, [
-            $this->title->toString(),
-        ]);
-        $translations = [];
-        $langDir = File::exists(resource_path('lang')) ? resource_path('lang') : base_path('lang');
-        if (File::exists("$langDir/ar.json")) {
-            $translations = json_decode(File::get("$langDir/ar.json"), true);
-        }
-        foreach ($this->newTranslationWords as $word) {
-            if (! array_key_exists($word, $translations)) {
-                $translations[$word] = '';
-            }
-        }
-        File::put("$langDir/ar.json", json_encode($translations, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+//        $this->newTranslationWords = array_merge($this->newTranslationWords, [
+//            $this->title->toString(),
+//        ]);
+//        $translations = [];
+//        $langDir = File::exists(resource_path('lang')) ? resource_path('lang') : base_path('lang');
+//        if (File::exists("$langDir/ar.json")) {
+//            $translations = json_decode(File::get("$langDir/ar.json"), true);
+//        }
+//        foreach ($this->newTranslationWords as $word) {
+//            if (!array_key_exists($word, $translations)) {
+//                $translations[$word] = '';
+//            }
+//        }
+//        File::put("$langDir/ar.json", json_encode($translations, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 }
