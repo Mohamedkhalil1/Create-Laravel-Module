@@ -4,6 +4,7 @@ namespace App\Http\Controllers\DummyNamespace;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DummyNamespace\DummyRequest;
+use App\Http\Resources\User\DummyResource;
 use FullyQualifiedDummyModel;
 use Illuminate\Http\Response;
 
@@ -11,13 +12,14 @@ class DummyController extends Controller
 {
     public function index(){
         $models = Dummy::query()->paginate($this->perPage ?? 10);
+        return DummyResource::collection($models);
     }
 
     public function store(DummyRequest $request)
     {
         try {
-            Dummy::create($request->validated());
-            return response()->noContent();
+            $model = Dummy::create($request->validated());
+            return DummyResource::make($model);
         } catch (\Exception $exception) {
             report($exception);
             return response()->noContent(Response::HTTP_BAD_REQUEST);
@@ -28,7 +30,7 @@ class DummyController extends Controller
     {
         try {
             $camelCaseDummy->update($request->validated());
-            return response()->noContent();
+            return DummyResource::make($camelCaseDummy);
         } catch (\Exception $exception) {
             report($exception);
             return response()->noContent(Response::HTTP_BAD_REQUEST);
