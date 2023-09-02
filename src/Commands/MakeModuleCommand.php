@@ -41,11 +41,11 @@ class MakeModuleCommand extends Command
      */
     public function handle(): int
     {
-        if (!$this->checkConfig()) {
+        if (! $this->checkConfig()) {
             return self::FAILURE;
         }
         $this->model = $this->getModel();
-        if (!$this->model) {
+        if (! $this->model) {
             return self::FAILURE;
         }
         $this->baseModelName = class_basename($this->model);
@@ -73,8 +73,8 @@ class MakeModuleCommand extends Command
             base_path('routes/api.php'),
         ];
         $files = collect($files)
-            ->filter(fn ($file) => !File::exists($file))
-            ->map(fn ($file) => ' - ' . str_replace(base_path(), '', $file))
+            ->filter(fn ($file) => ! File::exists($file))
+            ->map(fn ($file) => ' - '.str_replace(base_path(), '', $file))
             ->all();
         if (empty($files)) {
             return true;
@@ -92,10 +92,10 @@ class MakeModuleCommand extends Command
     {
         $model = $this->argument('model');
         $model = str_replace('/', '\\', $model);
-        if (!Str::startsWith($model, 'App\\Models\\')) {
+        if (! Str::startsWith($model, 'App\\Models\\')) {
             $model = "App\\Models\\$model";
         }
-        if (!class_exists($model)) {
+        if (! class_exists($model)) {
             $this->error("Model $model not found");
 
             return false;
@@ -139,13 +139,13 @@ class MakeModuleCommand extends Command
         $controller = str_replace('DummyTitle', $this->titleSingular, $controller);
         $controller = str_replace('camelCaseDummy', str($this->baseModelName)->camel(), $controller);
         $controller = str_replace('Dummy', $this->baseModelName, $controller);
-        if (File::exists($controllerDir . "/$controllerName.php")) {
+        if (File::exists($controllerDir."/$controllerName.php")) {
             throw new Exception("Controller $controllerName already exist in $controllerDir!");
         }
-        if (!File::exists($controllerDir)) {
+        if (! File::exists($controllerDir)) {
             File::makeDirectory($controllerDir, recursive: true);
         }
-        File::put($controllerDir . "/$controllerName.php", $controller);
+        File::put($controllerDir."/$controllerName.php", $controller);
     }
 
     private function makeRequest(): void
@@ -192,20 +192,20 @@ class MakeModuleCommand extends Command
                 $rules[] = "'exists:$table,id'";
             }
 
-            return "            '$column->COLUMN_NAME' => [" . implode(', ', $rules) . '],';
+            return "            '$column->COLUMN_NAME' => [".implode(', ', $rules).'],';
         })
             ->join(PHP_EOL);
-        $request = File::get(__DIR__ . '/stubs/DummyRequest.stub');
+        $request = File::get(__DIR__.'/stubs/DummyRequest.stub');
         $request = str_replace('DummyNamespace', $this->namespace, $request);
         $request = str_replace('DummyRequest', "{$this->baseModelName}Request", $request);
         $request = str_replace('Rules', $rules, $request);
-        if (File::exists($requestDir . "/$requestName.php")) {
+        if (File::exists($requestDir."/$requestName.php")) {
             throw new Exception("Request $requestName already exist in $requestDir!");
         }
-        if (!File::exists($requestDir)) {
+        if (! File::exists($requestDir)) {
             File::makeDirectory($requestDir, recursive: true);
         }
-        File::put($requestDir . "/$requestName.php", $request);
+        File::put($requestDir."/$requestName.php", $request);
     }
 
     private function makeResource(): void
@@ -218,19 +218,19 @@ class MakeModuleCommand extends Command
         })
             ->join(PHP_EOL);
 
-        $resource = File::get(__DIR__ . '/stubs/DummyResource.stub');
+        $resource = File::get(__DIR__.'/stubs/DummyResource.stub');
         $resource = str_replace('DummyNamespace', $this->namespace, $resource);
         $resource = str_replace('DummyResource', "{$this->baseModelName}Resource", $resource);
         $resource = str_replace('ResourcesArray', $resources, $resource);
         $resource = str_replace('DummyModel', $this->baseModelName, $resource);
 
-        if (File::exists($resourceDir . "/$resourceName.php")) {
+        if (File::exists($resourceDir."/$resourceName.php")) {
             throw new Exception("Resource $resourceName already exist in $resourceDir!");
         }
-        if (!File::exists($resourceDir)) {
+        if (! File::exists($resourceDir)) {
             File::makeDirectory($resourceDir, recursive: true);
         }
-        File::put($resourceDir . "/$resourceName.php", $resource);
+        File::put($resourceDir."/$resourceName.php", $resource);
     }
 
     private function addRoutes(): void
