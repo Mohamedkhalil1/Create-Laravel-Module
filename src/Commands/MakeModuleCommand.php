@@ -2,14 +2,13 @@
 
 namespace Loffy\CreateLaravelModule\Commands;
 
-
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Stringable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
-use Exception;
+use Illuminate\Support\Stringable;
 
 class MakeModuleCommand extends Command
 {
@@ -18,13 +17,21 @@ class MakeModuleCommand extends Command
     protected $description = 'Make module';
 
     private string $model;
+
     private string $baseModelName;
+
     private string $namespace;
+
     private string $pluralBaseModelName;
+
     private Collection $columns;
+
     private array $newTranslationWords = [];
+
     private Stringable $snakeCaseTitle;
+
     private Stringable $singularSnakeCaseTitle;
+
     private Stringable $title;
 
     private Stringable $titleSingular;
@@ -34,11 +41,11 @@ class MakeModuleCommand extends Command
      */
     public function handle(): int
     {
-        if (!$this->checkConfig()) {
+        if (! $this->checkConfig()) {
             return self::FAILURE;
         }
         $this->model = $this->getModel();
-        if (!$this->model) {
+        if (! $this->model) {
             return self::FAILURE;
         }
         $this->baseModelName = class_basename($this->model);
@@ -55,6 +62,7 @@ class MakeModuleCommand extends Command
         $this->addTranslations();
         $this->info('Module created successfully :)');
         $this->info('Don\'t forget to add columns translations in validation.php');
+
         return self::SUCCESS;
     }
 
@@ -66,14 +74,15 @@ class MakeModuleCommand extends Command
             base_path('routes/dashboard.php'),
         ];
         $files = collect($files)
-            ->filter(fn ($file) => !File::exists($file))
-            ->map(fn ($file) => ' - ' . str_replace(base_path(), '', $file))
+            ->filter(fn ($file) => ! File::exists($file))
+            ->map(fn ($file) => ' - '.str_replace(base_path(), '', $file))
             ->all();
         if (empty($files)) {
             return true;
         }
         $this->warn('Please make sure the following files exist!');
         $this->line(implode(PHP_EOL, $files));
+
         return false;
     }
 
@@ -84,13 +93,15 @@ class MakeModuleCommand extends Command
     {
         $model = $this->argument('model');
         $model = str_replace('/', '\\', $model);
-        if (!Str::startsWith($model, 'App\\Models\\')) {
+        if (! Str::startsWith($model, 'App\\Models\\')) {
             $model = "App\\Models\\$model";
         }
-        if (!class_exists($model)) {
+        if (! class_exists($model)) {
             $this->error("Model $model not found");
+
             return false;
         }
+
         return $model;
     }
 
@@ -99,6 +110,7 @@ class MakeModuleCommand extends Command
         $model = $this->model;
         $parts = explode('\\', $model);
         $namespace = $parts[count($parts) - 2];
+
         return $namespace == 'Models' ? '' : $namespace;
     }
 
@@ -117,7 +129,7 @@ class MakeModuleCommand extends Command
     {
         $controllerName = "{$this->baseModelName}Controller";
         $controllerDir = base_path("app/Http/Controllers/Dashboard/{$this->namespace}");
-        $controller = File::get(__DIR__ . '/stubs/DummyController.stub');
+        $controller = File::get(__DIR__.'/stubs/DummyController.stub');
         $controller = str_replace('DummyNamespace', $this->namespace, $controller);
         $controller = str_replace('DummyRequest', "{$this->baseModelName}Request", $controller);
         $controller = str_replace('FullyQualifiedDummyModel', $this->model, $controller);
@@ -128,13 +140,13 @@ class MakeModuleCommand extends Command
         $controller = str_replace('DummyTitle', $this->titleSingular, $controller);
         $controller = str_replace('camelCaseDummy', str($this->baseModelName)->camel(), $controller);
         $controller = str_replace('Dummy', $this->baseModelName, $controller);
-        if (File::exists($controllerDir . "/$controllerName.php")) {
+        if (File::exists($controllerDir."/$controllerName.php")) {
             throw new Exception("Controller $controllerName already exist in $controllerDir!");
         }
-        if (!File::exists($controllerDir)) {
+        if (! File::exists($controllerDir)) {
             File::makeDirectory($controllerDir, recursive: true);
         }
-        File::put($controllerDir . "/$controllerName.php", $controller);
+        File::put($controllerDir."/$controllerName.php", $controller);
     }
 
     private function makeRequest(): void
@@ -180,27 +192,28 @@ class MakeModuleCommand extends Command
                 $table = Str::plural(Str::replaceLast('_id', '', $column->COLUMN_NAME));
                 $rules[] = "'exists:$table,id'";
             }
-            return "            '$column->COLUMN_NAME' => [" . implode(', ', $rules) . '],';
+
+            return "            '$column->COLUMN_NAME' => [".implode(', ', $rules).'],';
         })
             ->join(PHP_EOL);
-        $request = File::get(__DIR__ . '/stubs/DummyRequest.stub');
+        $request = File::get(__DIR__.'/stubs/DummyRequest.stub');
         $request = str_replace('DummyNamespace', $this->namespace, $request);
         $request = str_replace('DummyRequest', "{$this->baseModelName}Request", $request);
         $request = str_replace('Rules', $rules, $request);
-        if (File::exists($requestDir . "/$requestName.php")) {
+        if (File::exists($requestDir."/$requestName.php")) {
             throw new Exception("Request $requestName already exist in $requestDir!");
         }
-        if (!File::exists($requestDir)) {
+        if (! File::exists($requestDir)) {
             File::makeDirectory($requestDir, recursive: true);
         }
-        File::put($requestDir . "/$requestName.php", $request);
+        File::put($requestDir."/$requestName.php", $request);
     }
 
     private function addRoutes(): void
     {
         $routes = [
-            "Route::resource('{$this->singularSnakeCaseTitle}', \\App\\Http\\Controllers\\Dashboard\\{$this->namespace}\\{$this->baseModelName}Controller::class);",];
-        File::append(base_path('routes/dashboard.php'), PHP_EOL . implode(PHP_EOL, $routes));
+            "Route::resource('{$this->singularSnakeCaseTitle}', \\App\\Http\\Controllers\\Dashboard\\{$this->namespace}\\{$this->baseModelName}Controller::class);", ];
+        File::append(base_path('routes/dashboard.php'), PHP_EOL.implode(PHP_EOL, $routes));
     }
 
     private function addTranslations(): void
@@ -214,7 +227,7 @@ class MakeModuleCommand extends Command
             $translations = json_decode(File::get("$langDir/ar.json"), true);
         }
         foreach ($this->newTranslationWords as $word) {
-            if (!array_key_exists($word, $translations)) {
+            if (! array_key_exists($word, $translations)) {
                 $translations[$word] = '';
             }
         }
