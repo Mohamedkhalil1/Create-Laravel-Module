@@ -10,9 +10,12 @@ use Loffy\CreateLaravelModule\DTOs\ModuleDTO;
 class RequestModule
 {
     private $rules;
+
     private array $currentRules;
 
-    public function __construct(private ModuleDTO $dto) {}
+    public function __construct(private ModuleDTO $dto)
+    {
+    }
 
     public static function make(ModuleDTO $dto): static
     {
@@ -25,24 +28,25 @@ class RequestModule
 
         $requestName = "{$this->dto->getBaseModelName()}Request";
         $requestDir = base_path("app/Http/Requests/{$this->dto->getNamespace()}");
-        $request = File::get(__DIR__ . '/../Commands/stubs/DummyRequest.stub');
+        $request = File::get(__DIR__.'/../Commands/stubs/DummyRequest.stub');
         $request = str_replace('DummyNamespace', $this->dto->getNamespace(), $request);
         $request = str_replace('DummyRequest', "{$this->dto->getBaseModelName()}Request", $request);
         $request = str_replace('Rules', $this->rules, $request);
-        if (File::exists($requestDir . "/$requestName.php")) {
+        if (File::exists($requestDir."/$requestName.php")) {
             throw new Exception("Request $requestName already exist in $requestDir!");
         }
-        if (!File::exists($requestDir)) {
+        if (! File::exists($requestDir)) {
             File::makeDirectory($requestDir, recursive: true);
         }
-        File::put($requestDir . "/$requestName.php", $request);
+        File::put($requestDir."/$requestName.php", $request);
     }
 
     private function setRules(): void
     {
         $this->rules = $this->dto->getColumns()->map(function ($column) {
             $this->setColumnRules($column);
-            return "            '$column->COLUMN_NAME' => [" . implode(', ', $this->currentRules) . '],';
+
+            return "            '$column->COLUMN_NAME' => [".implode(', ', $this->currentRules).'],';
         })
             ->join(PHP_EOL);
     }

@@ -8,7 +8,9 @@ use Loffy\CreateLaravelModule\DTOs\ModuleDTO;
 
 class ResourceModule
 {
-    public function __construct(private ModuleDTO $dto) {}
+    public function __construct(private ModuleDTO $dto)
+    {
+    }
 
     public static function make(ModuleDTO $dto): static
     {
@@ -24,17 +26,17 @@ class ResourceModule
             ->map(fn ($column) => "            '$column->COLUMN_NAME' => $thisString->$column->COLUMN_NAME,")
             ->join(PHP_EOL);
 
-        $resource = File::get(__DIR__ . '/../Commands/stubs/DummyResource.stub');
+        $resource = File::get(__DIR__.'/../Commands/stubs/DummyResource.stub');
         $resource = str_replace('DummyNamespace', $this->dto->getNamespace(), $resource);
         $resource = str_replace('DummyResource', "{$this->dto->getBaseModelName()}Resource", $resource);
         $resource = str_replace('ResourcesArray', $resources, $resource);
         $resource = str_replace('DummyModel', $this->dto->getBaseModelName(), $resource);
-        if (File::exists($resourceDir . "/$resourceName.php")) {
+        if (File::exists($resourceDir."/$resourceName.php")) {
             throw new Exception("Resource $resourceName already exist in $resourceDir!");
         }
-        if (!File::exists($resourceDir)) {
+        if (! File::exists($resourceDir)) {
             File::makeDirectory($resourceDir, recursive: true);
         }
-        File::put($resourceDir . "/$resourceName.php", $resource);
+        File::put($resourceDir."/$resourceName.php", $resource);
     }
 }

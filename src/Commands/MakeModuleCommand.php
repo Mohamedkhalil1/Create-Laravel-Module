@@ -15,8 +15,11 @@ class MakeModuleCommand extends Command
     protected $signature = 'make:module {model}';
 
     protected $description = 'Make module';
+
     protected ModuleDTO $dto;
+
     protected Validator $validator;
+
     protected string $model;
 
     public function __construct()
@@ -38,7 +41,7 @@ class MakeModuleCommand extends Command
         RouteModule::make($this->dto)->handle();
         ResourceModule::make($this->dto)->handle();
 
-//      $this->addTranslations();
+        //      $this->addTranslations();
         $this->info('Module created successfully :)');
         $this->info('Don\'t forget to add columns translations in validation.php');
 
@@ -48,15 +51,18 @@ class MakeModuleCommand extends Command
     private function hasErrors(): bool
     {
         $validator = Validator::make();
-        if (!empty($validator->getErrorFiles())) {
+        if (! empty($validator->getErrorFiles())) {
             $this->warn('Please make sure the following files exist!');
             $this->line(implode(PHP_EOL, $validator->getErrorFiles()));
+
             return true;
         }
-        if (!$validator->getModel($this->argument('model'))) {
+        if (! $validator->getModel($this->argument('model'))) {
             $this->warn('Model not found!');
+
             return true;
         }
+
         return false;
     }
 

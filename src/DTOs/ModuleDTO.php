@@ -29,7 +29,6 @@ class ModuleDTO
 
     private Stringable $titleSingular;
 
-
     public function setAttributes($model): void
     {
         $this->model = $model;
@@ -43,7 +42,6 @@ class ModuleDTO
         $this->titleSingular = $this->title->singular();
 
     }
-
 
     public function getModel(): string
     {
@@ -83,18 +81,15 @@ class ModuleDTO
         $this->namespace = $parts[count($parts) - 2];
     }
 
-
     public function getPluralBaseModelName(): string
     {
         return $this->pluralBaseModelName;
     }
 
-
     public function getNewTranslationWords(): array
     {
         return $this->newTranslationWords;
     }
-
 
     public function getSnakeCaseTitle(): Stringable
     {

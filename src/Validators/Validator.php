@@ -7,7 +7,9 @@ use Illuminate\Support\Str;
 
 class Validator
 {
-    public function __construct() {}
+    public function __construct()
+    {
+    }
 
     public static function make(): static
     {
@@ -19,21 +21,23 @@ class Validator
         $files = [
             base_path('routes/api.php'),
         ];
+
         return collect($files)
-            ->filter(fn ($file) => !File::exists($file))
-            ->map(fn ($file) => ' - ' . str_replace(base_path(), '', $file))
+            ->filter(fn ($file) => ! File::exists($file))
+            ->map(fn ($file) => ' - '.str_replace(base_path(), '', $file))
             ->all();
     }
 
     public function getModel($model): bool|string
     {
         $model = str_replace('/', '\\', $model);
-        if (!Str::startsWith($model, 'App\\Models\\')) {
+        if (! Str::startsWith($model, 'App\\Models\\')) {
             $model = "App\\Models\\$model";
         }
-        if (!class_exists($model)) {
+        if (! class_exists($model)) {
             return false;
         }
+
         return $model;
     }
 }
