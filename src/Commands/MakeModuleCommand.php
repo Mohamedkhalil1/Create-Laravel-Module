@@ -36,6 +36,7 @@ class MakeModuleCommand extends Command
         }
 
         $this->dto->setAttributes($this->validator->getModel($this->argument('model')));
+
         RequestModule::make($this->dto)->handle();
         ControllerModule::make($this->dto)->handle();
         RouteModule::make($this->dto)->handle();
@@ -51,12 +52,14 @@ class MakeModuleCommand extends Command
     private function hasErrors(): bool
     {
         $validator = Validator::make();
+
         if (! empty($validator->getErrorFiles())) {
             $this->warn('Please make sure the following files exist!');
             $this->line(implode(PHP_EOL, $validator->getErrorFiles()));
 
             return true;
         }
+
         if (! $validator->getModel($this->argument('model'))) {
             $this->warn('Model not found!');
 

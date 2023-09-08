@@ -31,9 +31,11 @@ class Validator
     public function getModel($model): bool|string
     {
         $model = str_replace('/', '\\', $model);
+
         if (! Str::startsWith($model, 'App\\Models\\')) {
             $model = "App\\Models\\$model";
         }
+
         if (! class_exists($model)) {
             return false;
         }

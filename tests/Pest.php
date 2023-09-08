@@ -1,5 +1,7 @@
 <?php
 
-use VendorName\Skeleton\Tests\TestCase;
 
-uses(TestCase::class)->in(__DIR__);
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Loffy\CreateLaravelModule\TestCase;
+
+uses(TestCase::class, RefreshDatabase::class)->in(__DIR__);

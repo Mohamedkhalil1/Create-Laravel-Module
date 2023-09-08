@@ -2,18 +2,42 @@
 
 namespace Loffy\CreateLaravelModule\Modules;
 
+use Doctrine\DBAL\Schema\Column;
 use Exception;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Str;
 use Loffy\CreateLaravelModule\DTOs\ModuleDTO;
+use Doctrine\DBAL\Types\ArrayType;
+use Doctrine\DBAL\Types\AsciiStringType;
+use Doctrine\DBAL\Types\BigIntType;
+use Doctrine\DBAL\Types\BinaryType;
+use Doctrine\DBAL\Types\BooleanType;
+use Doctrine\DBAL\Types\DateIntervalType;
+use Doctrine\DBAL\Types\DateTimeType;
+use Doctrine\DBAL\Types\DateTimeTzType;
+use Doctrine\DBAL\Types\DateType;
+use Doctrine\DBAL\Types\DecimalType;
+use Doctrine\DBAL\Types\FloatType;
+use Doctrine\DBAL\Types\GuidType;
+use Doctrine\DBAL\Types\IntegerType;
+use Doctrine\DBAL\Types\JsonType;
+use Doctrine\DBAL\Types\ObjectType;
+use Doctrine\DBAL\Types\SimpleArrayType;
+use Doctrine\DBAL\Types\SmallIntType;
+use Doctrine\DBAL\Types\StringType;
+use Doctrine\DBAL\Types\TextType;
+use Doctrine\DBAL\Types\TimeType;
+use Doctrine\DBAL\Types\VarDateTimeType;
+use Illuminate\Support\Collection;
 
 class RequestModule
 {
     private $rules;
 
-    private array $currentRules;
+    private Collection $currentRules;
+    private Column $currentColumn;
+    private string $columnTypeAsRule;
 
-    public function __construct(private ModuleDTO $dto)
+    public function __construct(private readonly ModuleDTO $dto)
     {
     }
 
@@ -28,115 +52,65 @@ class RequestModule
 
         $requestName = "{$this->dto->getBaseModelName()}Request";
         $requestDir = base_path("app/Http/Requests/{$this->dto->getNamespace()}");
-        $request = File::get(__DIR__.'/../Commands/stubs/DummyRequest.stub');
+        $request = File::get(__DIR__ . '/../Commands/stubs/DummyRequest.stub');
         $request = str_replace('DummyNamespace', $this->dto->getNamespace(), $request);
         $request = str_replace('DummyRequest', "{$this->dto->getBaseModelName()}Request", $request);
         $request = str_replace('Rules', $this->rules, $request);
-        if (File::exists($requestDir."/$requestName.php")) {
+        if (File::exists($requestDir . "/$requestName.php")) {
             throw new Exception("Request $requestName already exist in $requestDir!");
         }
-        if (! File::exists($requestDir)) {
+        if (!File::exists($requestDir)) {
             File::makeDirectory($requestDir, recursive: true);
         }
-        File::put($requestDir."/$requestName.php", $request);
+        File::put($requestDir . "/$requestName.php", $request);
     }
 
     private function setRules(): void
     {
-        $this->rules = $this->dto->getColumns()->map(function ($column) {
-            $this->setColumnRules($column);
+        $this->rules = $this->dto->getColumns()->mapWithKeys(function (Column $column) {
+            $this->currentRules = new Collection();
+            $this->currentColumn = $column;
+            $this
+                ->setColumnTypeRules()
+                ->setColumnConstraints()
+                ->setDefaultRules();
 
-            return "            '$column->COLUMN_NAME' => [".implode(', ', $this->currentRules).'],';
-        })
-            ->join(PHP_EOL);
+            return [
+                $this->currentColumn->getName() => $this->currentRules->filter()->all()
+            ];
+        });
+        dd($this->rules);
     }
 
-    private function setColumnRules($column): void
+    private function setColumnTypeRules(): self
     {
-        $this->currentRules = [$column->IS_NULLABLE == 'NO' ? "'required'" : "'nullable'"];
+        $this->columnTypeAsRule = match (get_class($this->currentColumn->getType())) {
+            BigIntType::class, IntegerType::class, SmallIntType::class => 'integer',
+            JsonType::class, ArrayType::class, SimpleArrayType::class => 'array',
+            AsciiStringType::class, StringType::class, BinaryType::class, GuidType::class, TextType::class => 'string',
+            BooleanType::class => 'boolean',
+            TimeType::class, DateIntervalType::class, DateTimeType::class, DateTimeTzType::class, VarDateTimeType::class, DateType::class => 'date',
+            DecimalType::class, FloatType::class => 'numeric',
+        };
 
-        if (Str::startsWith($column->COLUMN_TYPE, 'varchar')) {
-            $this->stringRule();
-        }
-        if (Str::startsWith($column->COLUMN_TYPE, 'text')) {
-            $this->textRule();
-        }
-        if (Str::startsWith($column->COLUMN_TYPE, 'longtext')) {
-            $this->LongTextRule();
-        }
-        if (Str::startsWith($column->COLUMN_TYPE, 'int') || Str::startsWith($column->COLUMN_TYPE, 'bigint')) {
-            $this->integerRule();
-        }
-        if (Str::startsWith($column->COLUMN_TYPE, 'tinyint')) {
-            $this->tinyIntRule();
-        }
-        if (Str::startsWith($column->COLUMN_TYPE, 'decimal')) {
-            $this->decimalRule();
-        }
-        if (Str::startsWith($column->COLUMN_TYPE, 'date')) {
-            $this->dateRule();
-        }
+        $this->currentRules->push($this->columnTypeAsRule);
 
-        if (Str::startsWith($column->COLUMN_NAME, 'email')) {
-            $this->emailRule();
-        }
-        if (Str::endsWith($column->COLUMN_NAME, '_id')) {
-            $this->foreignKeyRule($column);
-        }
+        return $this;
     }
 
-    private function emailRule(): void
+    private function setColumnConstraints(): self
     {
-        $this->rules[] = "'email'";
+        $this->currentRules->push($this->currentColumn->getNotnull() ? 'required' : 'nullable');
+
+        return $this;
     }
 
-    private function stringRule(): void
+    private function setDefaultRules(): self
     {
-        $this->currentRules[] = "'string'";
-        $this->currentRules[] = "'max:255'";
-    }
+        $columnTypes = config('module.request.defaults');
 
-    private function textRule()
-    {
-        $this->currentRules[] = "'string'";
-        $this->currentRules[] = "'max:65000'";
-    }
+        $this->currentRules->push($columnTypes[$this->columnTypeAsRule] ?? null);
 
-    private function LongTextRule(): void
-    {
-        $this->currentRules[] = "'string'";
-        $this->currentRules[] = "'max:4000000000'";
-    }
-
-    private function integerRule(): void
-    {
-        $this->currentRules[] = "'integer'";
-        $this->currentRules[] = "'min:0'";
-        $this->currentRules[] = "'max:2000000000'";
-    }
-
-    private function tinyIntRule(): void
-    {
-        $this->currentRules[] = "'integer'";
-        $this->currentRules[] = "'min:0'";
-        $this->currentRules[] = "'max:255'";
-    }
-
-    private function decimalRule(): void
-    {
-        $this->currentRules[] = "'numeric'";
-        $this->currentRules[] = "'min:0'";
-        $this->currentRules[] = "'max:999999.99'";
-    }
-
-    private function dateRule(): void
-    {
-        $this->currentRules[] = "'date'";
-    }
-
-    private function foreignKeyRule($column): void
-    {
-        $table = Str::plural(Str::replaceLast('_id', '', $column->COLUMN_NAME));
-        $this->currentRules[] = "'exists:$table,id'";
+        return $this;
     }
 }

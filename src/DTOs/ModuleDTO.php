@@ -3,9 +3,9 @@
 namespace Loffy\CreateLaravelModule\DTOs;
 
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Stringable;
+use Loffy\CreateLaravelModule\Mappers\DoctrineMapper;
 
 class ModuleDTO
 {
@@ -17,7 +17,8 @@ class ModuleDTO
 
     private string $pluralBaseModelName;
 
-    private Collection $columns;
+    public readonly Collection $columns;
+    public readonly Collection $foreignKeys;
 
     private array $newTranslationWords = [];
 
@@ -35,12 +36,13 @@ class ModuleDTO
         $this->baseModelName = class_basename($this->model);
         $this->setNamespace();
         $this->pluralBaseModelName = Str::plural($this->baseModelName);
-        $this->setColumns();
         $this->snakeCaseTitle = str($this->pluralBaseModelName)->snake(' ');
         $this->singularSnakeCaseTitle = str($this->pluralBaseModelName)->snake()->singular();
         $this->title = $this->snakeCaseTitle->headline();
         $this->titleSingular = $this->title->singular();
-
+        $mapper = DoctrineMapper::make(Str::snake($this->snakeCaseTitle->toString()));
+        $this->columns = $mapper->getColumns();
+        $this->foreignKeys = $mapper->getForeignKeys();
     }
 
     public function getModel(): string
@@ -62,18 +64,6 @@ class ModuleDTO
     {
         return $this->namespace;
     }
-
-    public function setColumns(): void
-    {
-        $this->columns = DB::table('information_schema.COLUMNS')
-            ->select('COLUMN_NAME', 'IS_NULLABLE', 'COLUMN_TYPE')
-            ->where('TABLE_SCHEMA', '=', DB::getDatabaseName())
-            ->where('TABLE_NAME', '=', (new $this->model)->getTable())
-            ->whereNotIn('COLUMN_NAME', ['id', 'created_at', 'updated_at', 'deleted_at'])
-            ->orderBy('ORDINAL_POSITION')
-            ->get();
-    }
-
     private function setNamespace(): void
     {
         $model = $this->model;
