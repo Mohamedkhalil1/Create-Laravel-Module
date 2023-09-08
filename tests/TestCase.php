@@ -3,7 +3,6 @@
 namespace Loffy\CreateLaravelModule;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra
@@ -32,7 +31,7 @@ class TestCase extends Orchestra
     {
         config()->set('database.default', 'testing');
 
-        app()->setBasePath(__DIR__ . '/Project');
+        app()->setBasePath(__DIR__.'/Project');
         /*
         $migration = include __DIR__.'/../database/migrations/create_skeleton_table.php.stub';
         $migration->up();

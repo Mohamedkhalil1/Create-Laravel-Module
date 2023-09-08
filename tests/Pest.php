@@ -1,6 +1,5 @@
 <?php
 
-
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Loffy\CreateLaravelModule\TestCase;
 
