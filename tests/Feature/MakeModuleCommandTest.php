@@ -1,6 +1,5 @@
 <?php
 
-
 use Illuminate\Support\Facades\Artisan;
 
 it('makes module', function () {

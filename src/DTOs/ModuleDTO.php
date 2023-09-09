@@ -18,6 +18,7 @@ class ModuleDTO
     private string $pluralBaseModelName;
 
     public readonly Collection $columns;
+
     public readonly Collection $foreignKeys;
 
     private array $newTranslationWords = [];
@@ -64,6 +65,7 @@ class ModuleDTO
     {
         return $this->namespace;
     }
+
     private function setNamespace(): void
     {
         $model = $this->model;

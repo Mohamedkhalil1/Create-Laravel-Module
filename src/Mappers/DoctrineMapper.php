@@ -11,11 +11,17 @@ use Illuminate\Support\Facades\Schema;
 class DoctrineMapper
 {
     private string $tableName;
+
     private Table $doctrineTableDetails;
+
     private AbstractSchemaManager $schema;
+
     protected Collection $columns;
+
     protected Collection $indexes;
+
     protected Collection $foreignKeys;
+
     public function __construct(string $tableName)
     {
         $this->tableName = $tableName;
@@ -36,6 +42,7 @@ class DoctrineMapper
     private function setDoctrineTableDetails(): self
     {
         $this->doctrineTableDetails = $this->schema->listTableDetails($this->tableName);
+
         return $this;
     }
 
@@ -44,10 +51,11 @@ class DoctrineMapper
         $this->foreignKeys = collect($this->doctrineTableDetails->getForeignKeys());
 
         $this->columns = collect($this->doctrineTableDetails->getColumns())
-            ->reject(fn($column) => $this->foreignKeys->contains(fn(ForeignKeyConstraint $foreignKey) => $foreignKey->getLocalColumns()[0] === $column->getName()));
+            ->reject(fn ($column) => $this->foreignKeys->contains(fn (ForeignKeyConstraint $foreignKey) => $foreignKey->getLocalColumns()[0] === $column->getName()));
 
         return $this;
     }
+
     public function getForeignKeys(): Collection
     {
         return $this->foreignKeys;
