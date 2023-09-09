@@ -6,7 +6,6 @@ use Illuminate\Support\Collection;
 
 class ModuleGenerator
 {
-
     private Collection $data;
 
     public function __construct(Collection $data)
@@ -22,7 +21,7 @@ class ModuleGenerator
     public function generateRequestRules()
     {
         return $this->data
-            ->map(fn(array $rules, string $ruleName) => "'$ruleName' => " . "['" . implode("', '", $rules) . "']")
+            ->map(fn (array $rules, string $ruleName) => "'$ruleName' => "."['".implode("', '", $rules)."']")
             ->implode(", \n\t\t\t");
     }
 }
