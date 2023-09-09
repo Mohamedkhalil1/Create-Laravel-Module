@@ -3,6 +3,7 @@
 namespace Loffy\CreateLaravelModule\Modules;
 
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Types\ArrayType;
 use Doctrine\DBAL\Types\AsciiStringType;
 use Doctrine\DBAL\Types\BigIntType;
@@ -43,9 +44,7 @@ class RequestModule
 
     private string $generated;
 
-    public function __construct(private readonly ModuleDTO $dto)
-    {
-    }
+    public function __construct(private readonly ModuleDTO $dto) {}
 
     public static function make(ModuleDTO $dto): self
     {
@@ -71,14 +70,18 @@ class RequestModule
             $this->currentRules = new Collection();
             $this->currentColumn = $column;
             $this
-                ->setColumnTypeRules()
                 ->setColumnConstraints()
-                ->setDefaultRules();
-
+                ->setColumnTypeRules()
+                ->setDefaultRules()
+                ->setNameRules();
             return [
                 $this->currentColumn->getName() => $this->currentRules->filter()->all(),
             ];
         });
+
+        $this->rules = $this->rules->merge(
+            $this->dto->foreignKeys->mapWithKeys(fn (ForeignKeyConstraint $key) => [$key->getLocalColumns()[0] => ['required', "exists:{$key->getForeignTableName()},{$key->getForeignColumns()[0]}"]])
+        );
 
         return $this;
     }
@@ -86,15 +89,14 @@ class RequestModule
     private function setColumnTypeRules(): self
     {
         $this->columnTypeAsRule = match (get_class($this->currentColumn->getType())) {
-            BigIntType::class, IntegerType::class, SmallIntType::class => 'integer',
-            JsonType::class, ArrayType::class, SimpleArrayType::class => 'array',
-            AsciiStringType::class, StringType::class, BinaryType::class, GuidType::class, TextType::class => 'string',
-            BooleanType::class => 'boolean',
+            BigIntType::class, IntegerType::class, SmallIntType::class                                                                    => 'integer',
+            JsonType::class, ArrayType::class, SimpleArrayType::class                                                                     => 'array',
+            AsciiStringType::class, StringType::class, BinaryType::class, GuidType::class, TextType::class                                => 'string',
+            BooleanType::class                                                                                                            => 'boolean',
             TimeType::class, DateIntervalType::class, DateTimeType::class, DateTimeTzType::class, VarDateTimeType::class, DateType::class => 'date',
-            DecimalType::class, FloatType::class => 'numeric',
-            default => null
+            DecimalType::class, FloatType::class                                                                                          => 'numeric',
+            default                                                                                                                       => null
         };
-
         $this->currentRules->push($this->columnTypeAsRule);
 
         return $this;
@@ -111,15 +113,41 @@ class RequestModule
     {
         $columnTypes = config('module.request.defaults');
 
-        $this->currentRules->push($columnTypes[$this->columnTypeAsRule] ?? null);
+        $typeRules = $columnTypes[$this->columnTypeAsRule] ?? null;
+
+        if (!$typeRules) {
+            return $this;
+        }
+
+        foreach ($typeRules as $rule) {
+            $this->currentRules->push($rule);
+        }
+
+        return $this;
+    }
+
+    private function setNameRules(): self
+    {
+        $columnNames = config('module.request.names');
+
+        $typeRules = $columnNames[$this->currentColumn->getName()] ?? null;
+
+        if (!$typeRules) {
+            return $this;
+        }
+
+        foreach ($typeRules as $rule) {
+            $this->currentRules->push($rule);
+        }
 
         return $this;
     }
 
     private function makeRequestCommand(): self
     {
+        $nameSpace = $this->dto->getNamespace() ? $this->dto->getNamespace() . '/' : '';
         $result = Artisan::call('make:request', [
-            'name' => "{$this->dto->getBaseModelName()}Request",
+            'name'    => "$nameSpace{$this->dto->getBaseModelName()}Request",
             '--force' => true,
         ]);
 
@@ -139,7 +167,7 @@ class RequestModule
 
     private function addRulesToRequestFile(): self
     {
-        $requestFile = File::get(app_path("Http/Requests/{$this->dto->getBaseModelName()}Request.php"));
+        $requestFile = File::get(app_path("Http/Requests/{$this->dto->getNamespace()}/{$this->dto->getBaseModelName()}Request.php"));
 
         $requestFile = str_replace(
             'return [',
@@ -147,7 +175,7 @@ class RequestModule
             $requestFile
         );
 
-        File::put(app_path("Http/Requests/{$this->dto->getBaseModelName()}Request.php"), $requestFile);
+        File::put(app_path("Http/Requests/{$this->dto->getNamespace()}/{$this->dto->getBaseModelName()}Request.php"), $requestFile);
 
         return $this;
     }

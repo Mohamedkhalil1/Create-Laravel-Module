@@ -3,8 +3,23 @@
 return [
     'request' => [
         'defaults' => [
-            'string' => 'max:255',
-            'integer' => 'min:1',
+            'string' => [
+                'min:1',
+                'max:255',
+            ],
+
+            'integer' => [
+                'min:1',
+                'max:99999',
+            ],
+        ],
+        'names'    => [
+            'email'    => [
+                'email',
+            ],
+            'password' => [
+                'confirm',
+            ],
         ],
     ],
 ];
