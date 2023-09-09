@@ -13,8 +13,8 @@ return [
                 'max:99999',
             ],
         ],
-        'names'    => [
-            'email'    => [
+        'names' => [
+            'email' => [
                 'email',
             ],
             'password' => [

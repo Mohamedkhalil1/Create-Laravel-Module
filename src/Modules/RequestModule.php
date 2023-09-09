@@ -44,7 +44,9 @@ class RequestModule
 
     private string $generated;
 
-    public function __construct(private readonly ModuleDTO $dto) {}
+    public function __construct(private readonly ModuleDTO $dto)
+    {
+    }
 
     public static function make(ModuleDTO $dto): self
     {
@@ -74,6 +76,7 @@ class RequestModule
                 ->setColumnTypeRules()
                 ->setDefaultRules()
                 ->setNameRules();
+
             return [
                 $this->currentColumn->getName() => $this->currentRules->filter()->all(),
             ];
@@ -89,13 +92,13 @@ class RequestModule
     private function setColumnTypeRules(): self
     {
         $this->columnTypeAsRule = match (get_class($this->currentColumn->getType())) {
-            BigIntType::class, IntegerType::class, SmallIntType::class                                                                    => 'integer',
-            JsonType::class, ArrayType::class, SimpleArrayType::class                                                                     => 'array',
-            AsciiStringType::class, StringType::class, BinaryType::class, GuidType::class, TextType::class                                => 'string',
-            BooleanType::class                                                                                                            => 'boolean',
+            BigIntType::class, IntegerType::class, SmallIntType::class => 'integer',
+            JsonType::class, ArrayType::class, SimpleArrayType::class => 'array',
+            AsciiStringType::class, StringType::class, BinaryType::class, GuidType::class, TextType::class => 'string',
+            BooleanType::class => 'boolean',
             TimeType::class, DateIntervalType::class, DateTimeType::class, DateTimeTzType::class, VarDateTimeType::class, DateType::class => 'date',
-            DecimalType::class, FloatType::class                                                                                          => 'numeric',
-            default                                                                                                                       => null
+            DecimalType::class, FloatType::class => 'numeric',
+            default => null
         };
         $this->currentRules->push($this->columnTypeAsRule);
 
@@ -115,7 +118,7 @@ class RequestModule
 
         $typeRules = $columnTypes[$this->columnTypeAsRule] ?? null;
 
-        if (!$typeRules) {
+        if (! $typeRules) {
             return $this;
         }
 
@@ -132,7 +135,7 @@ class RequestModule
 
         $typeRules = $columnNames[$this->currentColumn->getName()] ?? null;
 
-        if (!$typeRules) {
+        if (! $typeRules) {
             return $this;
         }
 
@@ -145,9 +148,9 @@ class RequestModule
 
     private function makeRequestCommand(): self
     {
-        $nameSpace = $this->dto->getNamespace() ? $this->dto->getNamespace() . '/' : '';
+        $nameSpace = $this->dto->getNamespace() ? $this->dto->getNamespace().'/' : '';
         $result = Artisan::call('make:request', [
-            'name'    => "$nameSpace{$this->dto->getBaseModelName()}Request",
+            'name' => "$nameSpace{$this->dto->getBaseModelName()}Request",
             '--force' => true,
         ]);
 
