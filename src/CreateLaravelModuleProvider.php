@@ -3,6 +3,7 @@
 namespace Loffy\CreateLaravelModule;
 
 use Loffy\CreateLaravelModule\Commands\MakeModuleCommand;
+use Loffy\CreateLaravelModule\Commands\ModuleRequestMakeCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -13,7 +14,9 @@ class CreateLaravelModuleProvider extends PackageServiceProvider
         $package
             ->name('create-laravel-module')
             ->hasConfigFile()
-            ->hasViews()
-            ->hasCommand(MakeModuleCommand::class);
+            ->hasCommands([
+                MakeModuleCommand::class,
+                ModuleRequestMakeCommand::class
+            ]);
     }
 }

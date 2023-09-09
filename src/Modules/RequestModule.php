@@ -116,9 +116,8 @@ class RequestModule
 
     private function makeRequestCommand(): self
     {
-        $result = Artisan::call('make:request', [
+        $result = Artisan::call('make:module-request', [
             'name' => "{$this->dto->getBaseModelName()}Request",
-            '--force' => true
         ]);
 
         if ($result !== 0) {
