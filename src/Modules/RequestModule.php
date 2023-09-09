@@ -4,7 +4,9 @@ namespace Loffy\CreateLaravelModule\Modules;
 
 use Doctrine\DBAL\Schema\Column;
 use Exception;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
+use Loffy\CreateLaravelModule\ColumnSupport;
 use Loffy\CreateLaravelModule\DTOs\ModuleDTO;
 use Doctrine\DBAL\Types\ArrayType;
 use Doctrine\DBAL\Types\AsciiStringType;
@@ -28,46 +30,42 @@ use Doctrine\DBAL\Types\TextType;
 use Doctrine\DBAL\Types\TimeType;
 use Doctrine\DBAL\Types\VarDateTimeType;
 use Illuminate\Support\Collection;
+use Loffy\CreateLaravelModule\Generators\ModuleGenerator;
 
 class RequestModule
 {
-    private $rules;
+    private Collection $rules;
 
     private Collection $currentRules;
     private Column $currentColumn;
     private string $columnTypeAsRule;
+    private string $generated;
 
     public function __construct(private readonly ModuleDTO $dto)
     {
     }
 
-    public static function make(ModuleDTO $dto): static
+    public static function make(ModuleDTO $dto): self
     {
-        return new static($dto);
+        return new self($dto);
     }
 
     public function handle(): void
     {
-        $this->setRules();
-
-        $requestName = "{$this->dto->getBaseModelName()}Request";
-        $requestDir = base_path("app/Http/Requests/{$this->dto->getNamespace()}");
-        $request = File::get(__DIR__ . '/../Commands/stubs/DummyRequest.stub');
-        $request = str_replace('DummyNamespace', $this->dto->getNamespace(), $request);
-        $request = str_replace('DummyRequest', "{$this->dto->getBaseModelName()}Request", $request);
-        $request = str_replace('Rules', $this->rules, $request);
-        if (File::exists($requestDir . "/$requestName.php")) {
-            throw new Exception("Request $requestName already exist in $requestDir!");
-        }
-        if (!File::exists($requestDir)) {
-            File::makeDirectory($requestDir, recursive: true);
-        }
-        File::put($requestDir . "/$requestName.php", $request);
+        $this
+            ->makeRequestCommand()
+            ->setRules()
+            ->generateRules()
+            ->addRulesToRequestFile();
     }
 
-    private function setRules(): void
+    private function setRules(): self
     {
         $this->rules = $this->dto->getColumns()->mapWithKeys(function (Column $column) {
+            if (ColumnSupport::isIgnored($column)) {
+                return [];
+            }
+
             $this->currentRules = new Collection();
             $this->currentColumn = $column;
             $this
@@ -79,7 +77,8 @@ class RequestModule
                 $this->currentColumn->getName() => $this->currentRules->filter()->all()
             ];
         });
-        dd($this->rules);
+
+        return $this;
     }
 
     private function setColumnTypeRules(): self
@@ -91,6 +90,7 @@ class RequestModule
             BooleanType::class => 'boolean',
             TimeType::class, DateIntervalType::class, DateTimeType::class, DateTimeTzType::class, VarDateTimeType::class, DateType::class => 'date',
             DecimalType::class, FloatType::class => 'numeric',
+            default => null
         };
 
         $this->currentRules->push($this->columnTypeAsRule);
@@ -110,6 +110,42 @@ class RequestModule
         $columnTypes = config('module.request.defaults');
 
         $this->currentRules->push($columnTypes[$this->columnTypeAsRule] ?? null);
+
+        return $this;
+    }
+
+    private function makeRequestCommand(): self
+    {
+        $result = Artisan::call('make:request', [
+            'name' => "{$this->dto->getBaseModelName()}Request",
+            '--force' => true
+        ]);
+
+        if ($result !== 0) {
+            throw new Exception('Request command failed');
+        }
+
+        return $this;
+    }
+
+    private function generateRules(): self
+    {
+        $this->generated = ModuleGenerator::make($this->rules)->generateRequestRules();
+
+        return $this;
+    }
+
+    private function addRulesToRequestFile(): self
+    {
+        $requestFile = File::get(app_path("Http/Requests/{$this->dto->getBaseModelName()}Request.php"));
+
+        $requestFile = str_replace(
+            'return [',
+            "return [\n\t\t\t$this->generated,",
+            $requestFile
+        );
+
+        File::put(app_path("Http/Requests/{$this->dto->getBaseModelName()}Request.php"), $requestFile);
 
         return $this;
     }
