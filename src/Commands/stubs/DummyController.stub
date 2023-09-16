@@ -17,33 +17,18 @@ class DummyController extends Controller
 
     public function store(DummyRequest $request)
     {
-        try {
-            $model = Dummy::create($request->validated());
-            return DummyResource::make($model);
-        } catch (\Exception $exception) {
-            report($exception);
-            return response()->noContent(Response::HTTP_BAD_REQUEST);
-        }
+        $model = Dummy::create($request->validated());
+        return DummyResource::make($model);
     }
 
     public function update(DummyRequest $request, Dummy $camelCaseDummy)
     {
-        try {
-            $camelCaseDummy->update($request->validated());
-            return DummyResource::make($camelCaseDummy);
-        } catch (\Exception $exception) {
-            report($exception);
-            return response()->noContent(Response::HTTP_BAD_REQUEST);
-        }
+        $camelCaseDummy->update($request->validated());
+        return DummyResource::make($camelCaseDummy);
     }
 
     public function delete(Dummy $camelCaseDummy){
-        try {
-            $camelCaseDummy->delete();
-            return response()->noContent();
-        } catch (\Exception $exception) {
-            report($exception);
-            return response()->noContent(Response::HTTP_BAD_REQUEST);
-        }
+        $camelCaseDummy->delete();
+        return response()->noContent();
     }
 }

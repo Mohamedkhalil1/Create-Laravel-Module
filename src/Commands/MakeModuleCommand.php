@@ -2,13 +2,13 @@
 
 namespace Loffy\CreateLaravelModule\Commands;
 
-use Exception;
 use Illuminate\Console\Command;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Str;
-use Illuminate\Support\Stringable;
+use Loffy\CreateLaravelModule\DTOs\ModuleDTO;
+use Loffy\CreateLaravelModule\Modules\ControllerModule;
+use Loffy\CreateLaravelModule\Modules\RequestModule;
+use Loffy\CreateLaravelModule\Modules\ResourceModule;
+use Loffy\CreateLaravelModule\Modules\RouteModule;
+use Loffy\CreateLaravelModule\Validators\Validator;
 
 class MakeModuleCommand extends Command
 {
@@ -16,228 +16,54 @@ class MakeModuleCommand extends Command
 
     protected $description = 'Make module';
 
-    private string $model;
+    protected ModuleDTO $dto;
 
-    private string $baseModelName;
+    protected Validator $validator;
 
-    private string $namespace;
+    protected string $model;
 
-    private string $pluralBaseModelName;
+    public function __construct()
+    {
+        parent::__construct();
+        $this->dto = new ModuleDTO();
+        $this->validator = Validator::make();
+    }
 
-    private Collection $columns;
-
-    private array $newTranslationWords = [];
-
-    private Stringable $snakeCaseTitle;
-
-    private Stringable $singularSnakeCaseTitle;
-
-    private Stringable $title;
-
-    private Stringable $titleSingular;
-
-    /**
-     * @throws Exception
-     */
     public function handle(): int
     {
-        if (! $this->checkConfig()) {
+        if ($this->hasErrors()) {
             return self::FAILURE;
         }
-        $this->model = $this->getModel();
-        if (! $this->model) {
-            return self::FAILURE;
-        }
-        $this->baseModelName = class_basename($this->model);
-        $this->namespace = $this->getNamespace();
-        $this->pluralBaseModelName = Str::plural($this->baseModelName);
-        $this->columns = $this->getColumns();
-        $this->snakeCaseTitle = str($this->pluralBaseModelName)->snake(' ');
-        $this->singularSnakeCaseTitle = str($this->pluralBaseModelName)->snake()->singular();
-        $this->title = $this->snakeCaseTitle->headline();
-        $this->titleSingular = $this->title->singular();
-        $this->makeResource();
-        $this->makeController();
-        $this->makeRequest();
-        $this->addRoutes();
-        $this->addTranslations();
+
+        $this->dto->setAttributes($this->validator->getModel($this->argument('model')));
+        RequestModule::make($this->dto)->handle();
+        ControllerModule::make($this->dto)->handle();
+        RouteModule::make($this->dto)->handle();
+        ResourceModule::make($this->dto)->handle();
+
+        //      $this->addTranslations();
         $this->info('Module created successfully :)');
         $this->info('Don\'t forget to add columns translations in validation.php');
 
         return self::SUCCESS;
     }
 
-    private function checkConfig(): bool
+    private function hasErrors(): bool
     {
-        $files = [
-            base_path('routes/api.php'),
-        ];
-        $files = collect($files)
-            ->filter(fn ($file) => ! File::exists($file))
-            ->map(fn ($file) => ' - '.str_replace(base_path(), '', $file))
-            ->all();
-        if (empty($files)) {
+        $validator = Validator::make();
+        if (! empty($validator->getErrorFiles())) {
+            $this->warn('Please make sure the following files exist!');
+            $this->line(implode(PHP_EOL, $validator->getErrorFiles()));
+
             return true;
         }
-        $this->warn('Please make sure the following files exist!');
-        $this->line(implode(PHP_EOL, $files));
+        if (! $validator->getModel($this->argument('model'))) {
+            $this->warn('Model not found!');
+
+            return true;
+        }
 
         return false;
-    }
-
-    /**
-     * @throws Exception
-     */
-    private function getModel(): string
-    {
-        $model = $this->argument('model');
-        $model = str_replace('/', '\\', $model);
-        if (! Str::startsWith($model, 'App\\Models\\')) {
-            $model = "App\\Models\\$model";
-        }
-        if (! class_exists($model)) {
-            $this->error("Model $model not found");
-
-            return false;
-        }
-
-        return $model;
-    }
-
-    private function getNamespace(): string
-    {
-        $model = $this->model;
-        $parts = explode('\\', $model);
-        $namespace = $parts[count($parts) - 2];
-
-        return $namespace == 'Models' ? '' : $namespace;
-    }
-
-    public function getColumns(): Collection
-    {
-        return DB::table('information_schema.COLUMNS')
-            ->select('COLUMN_NAME', 'IS_NULLABLE', 'COLUMN_TYPE')
-            ->where('TABLE_SCHEMA', '=', DB::getDatabaseName())
-            ->where('TABLE_NAME', '=', (new $this->model)->getTable())
-            ->whereNotIn('COLUMN_NAME', ['id', 'created_at', 'updated_at', 'deleted_at'])
-            ->orderBy('ORDINAL_POSITION')
-            ->get();
-    }
-
-    private function makeController(): void
-    {
-        $controllerName = "{$this->baseModelName}Controller";
-        $controllerDir = base_path("app/Http/Controllers/{$this->namespace}");
-        $controller = File::get(__DIR__.'/stubs/DummyController.stub');
-        $controller = str_replace('DummyNamespace', $this->namespace, $controller);
-        $controller = str_replace('DummyRequest', "{$this->baseModelName}Request", $controller);
-        $controller = str_replace('FullyQualifiedDummyModel', $this->model, $controller);
-        $controller = str_replace('DummyController', $controllerName, $controller);
-        $controller = str_replace('dummies', $this->snakeCaseTitle, $controller);
-        $controller = str_replace('Dummies', $this->title, $controller);
-        $controller = str_replace('dummy', $this->singularSnakeCaseTitle, $controller);
-        $controller = str_replace('DummyTitle', $this->titleSingular, $controller);
-        $controller = str_replace('camelCaseDummy', str($this->baseModelName)->camel(), $controller);
-        $controller = str_replace('Dummy', $this->baseModelName, $controller);
-        if (File::exists($controllerDir."/$controllerName.php")) {
-            throw new Exception("Controller $controllerName already exist in $controllerDir!");
-        }
-        if (! File::exists($controllerDir)) {
-            File::makeDirectory($controllerDir, recursive: true);
-        }
-        File::put($controllerDir."/$controllerName.php", $controller);
-    }
-
-    private function makeRequest(): void
-    {
-        $requestName = "{$this->baseModelName}Request";
-        $requestDir = base_path("app/Http/Requests/{$this->namespace}");
-        $rules = $this->columns->map(function ($column) {
-            $rules = [$column->IS_NULLABLE == 'NO' ? "'required'" : "'nullable'"];
-            if ($column->COLUMN_NAME == 'email') {
-                $rules[] = "'email'";
-            }
-            if (Str::startsWith($column->COLUMN_TYPE, 'varchar')) {
-                $rules[] = "'string'";
-                $rules[] = "'max:255'";
-            }
-            if (Str::startsWith($column->COLUMN_TYPE, 'text')) {
-                $rules[] = "'string'";
-                $rules[] = "'max:65000'";
-            }
-            if (Str::startsWith($column->COLUMN_TYPE, 'longtext')) {
-                $rules[] = "'string'";
-                $rules[] = "'max:4000000000'";
-            }
-            if (Str::startsWith($column->COLUMN_TYPE, 'int') || Str::startsWith($column->COLUMN_TYPE, 'bigint')) {
-                $rules[] = "'integer'";
-                $rules[] = "'min:0'";
-                $rules[] = "'max:2000000000'";
-            }
-            if (Str::startsWith($column->COLUMN_TYPE, 'tinyint')) {
-                $rules[] = "'integer'";
-                $rules[] = "'min:0'";
-                $rules[] = "'max:255'";
-            }
-            if (Str::startsWith($column->COLUMN_TYPE, 'decimal')) {
-                $rules[] = "'numeric'";
-                $rules[] = "'min:0'";
-                $rules[] = "'max:999999.99'";
-            }
-            if (Str::startsWith($column->COLUMN_TYPE, 'date')) {
-                $rules[] = "'date'";
-            }
-            if (Str::endsWith($column->COLUMN_NAME, '_id')) {
-                $table = Str::plural(Str::replaceLast('_id', '', $column->COLUMN_NAME));
-                $rules[] = "'exists:$table,id'";
-            }
-
-            return "            '$column->COLUMN_NAME' => [".implode(', ', $rules).'],';
-        })
-            ->join(PHP_EOL);
-        $request = File::get(__DIR__.'/stubs/DummyRequest.stub');
-        $request = str_replace('DummyNamespace', $this->namespace, $request);
-        $request = str_replace('DummyRequest', "{$this->baseModelName}Request", $request);
-        $request = str_replace('Rules', $rules, $request);
-        if (File::exists($requestDir."/$requestName.php")) {
-            throw new Exception("Request $requestName already exist in $requestDir!");
-        }
-        if (! File::exists($requestDir)) {
-            File::makeDirectory($requestDir, recursive: true);
-        }
-        File::put($requestDir."/$requestName.php", $request);
-    }
-
-    private function makeResource(): void
-    {
-        $resourceName = "{$this->baseModelName}Resource";
-        $resourceDir = base_path("app/Http/Resources/{$this->namespace}");
-        $thisString = '$this';
-        $resources = $this->columns->map(function ($column) use ($thisString) {
-            return "            '$column->COLUMN_NAME' => $thisString->$column->COLUMN_NAME,";
-        })
-            ->join(PHP_EOL);
-
-        $resource = File::get(__DIR__.'/stubs/DummyResource.stub');
-        $resource = str_replace('DummyNamespace', $this->namespace, $resource);
-        $resource = str_replace('DummyResource', "{$this->baseModelName}Resource", $resource);
-        $resource = str_replace('ResourcesArray', $resources, $resource);
-        $resource = str_replace('DummyModel', $this->baseModelName, $resource);
-
-        if (File::exists($resourceDir."/$resourceName.php")) {
-            throw new Exception("Resource $resourceName already exist in $resourceDir!");
-        }
-        if (! File::exists($resourceDir)) {
-            File::makeDirectory($resourceDir, recursive: true);
-        }
-        File::put($resourceDir."/$resourceName.php", $resource);
-    }
-
-    private function addRoutes(): void
-    {
-        $routes = [
-            "Route::resource('{$this->singularSnakeCaseTitle}', \\App\\Http\\Controllers\\{$this->namespace}\\{$this->baseModelName}Controller::class);", ];
-        File::append(base_path('routes/api.php'), PHP_EOL.implode(PHP_EOL, $routes));
     }
 
     private function addTranslations(): void
