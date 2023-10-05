@@ -23,7 +23,11 @@ class ResourceModule
         $resourceDir = base_path("app/Http/Resources/{$this->dto->getNamespace()}");
         $thisString = '$this';
         $resources = $this->dto->getColumns()
-            ->map(fn ($column) => "            '$column->COLUMN_NAME' => $thisString->$column->COLUMN_NAME,")
+            ->map(function ($column) use ($thisString) {
+                $columnName = $column->getName();
+
+                return "            '{$columnName}' => $thisString->$columnName,";
+            })
             ->join(PHP_EOL);
 
         $resource = File::get(__DIR__.'/../Commands/stubs/DummyResource.stub');

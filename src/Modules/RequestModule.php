@@ -3,11 +3,7 @@
 namespace Loffy\CreateLaravelModule\Modules;
 
 use Doctrine\DBAL\Schema\Column;
-use Exception;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\File;
-use Loffy\CreateLaravelModule\ColumnSupport;
-use Loffy\CreateLaravelModule\DTOs\ModuleDTO;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Types\ArrayType;
 use Doctrine\DBAL\Types\AsciiStringType;
 use Doctrine\DBAL\Types\BigIntType;
@@ -22,14 +18,18 @@ use Doctrine\DBAL\Types\FloatType;
 use Doctrine\DBAL\Types\GuidType;
 use Doctrine\DBAL\Types\IntegerType;
 use Doctrine\DBAL\Types\JsonType;
-use Doctrine\DBAL\Types\ObjectType;
 use Doctrine\DBAL\Types\SimpleArrayType;
 use Doctrine\DBAL\Types\SmallIntType;
 use Doctrine\DBAL\Types\StringType;
 use Doctrine\DBAL\Types\TextType;
 use Doctrine\DBAL\Types\TimeType;
 use Doctrine\DBAL\Types\VarDateTimeType;
+use Exception;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\File;
+use Loffy\CreateLaravelModule\ColumnSupport;
+use Loffy\CreateLaravelModule\DTOs\ModuleDTO;
 use Loffy\CreateLaravelModule\Generators\ModuleGenerator;
 
 class RequestModule
@@ -37,8 +37,11 @@ class RequestModule
     private Collection $rules;
 
     private Collection $currentRules;
+
     private Column $currentColumn;
+
     private string $columnTypeAsRule;
+
     private string $generated;
 
     public function __construct(private readonly ModuleDTO $dto)
@@ -69,14 +72,19 @@ class RequestModule
             $this->currentRules = new Collection();
             $this->currentColumn = $column;
             $this
-                ->setColumnTypeRules()
                 ->setColumnConstraints()
-                ->setDefaultRules();
+                ->setColumnTypeRules()
+                ->setDefaultRules()
+                ->setNameRules();
 
             return [
-                $this->currentColumn->getName() => $this->currentRules->filter()->all()
+                $this->currentColumn->getName() => $this->currentRules->filter()->all(),
             ];
         });
+
+        $this->rules = $this->rules->merge(
+            $this->dto->foreignKeys->mapWithKeys(fn (ForeignKeyConstraint $key) => [$key->getLocalColumns()[0] => ['required', "exists:{$key->getForeignTableName()},{$key->getForeignColumns()[0]}"]])
+        );
 
         return $this;
     }
@@ -109,15 +117,42 @@ class RequestModule
     {
         $columnTypes = config('module.request.defaults');
 
-        $this->currentRules->push($columnTypes[$this->columnTypeAsRule] ?? null);
+        $typeRules = $columnTypes[$this->columnTypeAsRule] ?? null;
+
+        if (! $typeRules) {
+            return $this;
+        }
+
+        foreach ($typeRules as $rule) {
+            $this->currentRules->push($rule);
+        }
+
+        return $this;
+    }
+
+    private function setNameRules(): self
+    {
+        $columnNames = config('module.request.names');
+
+        $typeRules = $columnNames[$this->currentColumn->getName()] ?? null;
+
+        if (! $typeRules) {
+            return $this;
+        }
+
+        foreach ($typeRules as $rule) {
+            $this->currentRules->push($rule);
+        }
 
         return $this;
     }
 
     private function makeRequestCommand(): self
     {
-        $result = Artisan::call('make:module-request', [
-            'name' => "{$this->dto->getBaseModelName()}Request",
+        $nameSpace = $this->dto->getNamespace() ? $this->dto->getNamespace().'/' : '';
+        $result = Artisan::call('make:request', [
+            'name' => "$nameSpace{$this->dto->getBaseModelName()}Request",
+            '--force' => true,
         ]);
 
         if ($result !== 0) {
@@ -136,7 +171,7 @@ class RequestModule
 
     private function addRulesToRequestFile(): self
     {
-        $requestFile = File::get(app_path("Http/Requests/{$this->dto->getBaseModelName()}Request.php"));
+        $requestFile = File::get(app_path("Http/Requests/{$this->dto->getNamespace()}/{$this->dto->getBaseModelName()}Request.php"));
 
         $requestFile = str_replace(
             'return [',
