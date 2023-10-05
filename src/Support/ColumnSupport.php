@@ -3,7 +3,6 @@
 namespace Loffy\CreateLaravelModule\Support;
 
 use Doctrine\DBAL\Schema\AbstractAsset;
-use Doctrine\DBAL\Schema\Column;
 
 class ColumnSupport
 {

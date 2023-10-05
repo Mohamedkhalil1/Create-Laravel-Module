@@ -46,6 +46,4 @@ class MasterModule
 
         return $this;
     }
-
-
 }

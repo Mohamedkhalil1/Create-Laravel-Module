@@ -7,7 +7,9 @@ use Illuminate\Support\Collection;
 class ModuleGenerator
 {
     private Collection $data;
+
     private Collection $imports;
+
     private string $generated;
 
     public function __construct(Collection $data)
@@ -32,15 +34,17 @@ class ModuleGenerator
 
     private function generateRule(array $rules, string $ruleName): string
     {
-        $rules = collect($rules)->map(function (string $rule){
+        $rules = collect($rules)->map(function (string $rule) {
             if (str_contains($rule, 'Rule::')) {
                 $this->imports->push('use Illuminate\Validation\Rule;');
+
                 return $rule;
             }
+
             return "'$rule'";
         })->all();
 
-        return "'$ruleName' => "."[" . implode(", ", $rules)."]";
+        return "'$ruleName' => ".'['.implode(', ', $rules).']';
     }
 
     public function getGenerated(): string

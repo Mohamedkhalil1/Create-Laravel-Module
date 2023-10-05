@@ -30,7 +30,6 @@ use Exception;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
-use Illuminate\Validation\Rule;
 use Loffy\CreateLaravelModule\DTOs\ModuleDTO;
 use Loffy\CreateLaravelModule\Generators\ModuleGenerator;
 use Loffy\CreateLaravelModule\Support\ColumnSupport;
@@ -44,6 +43,7 @@ class RequestModule
     private AbstractAsset $currentColumn;
 
     private string $columnTypeAsRule;
+
     private ModuleGenerator $generator;
 
     public function __construct(private readonly ModuleDTO $dto)
@@ -71,6 +71,7 @@ class RequestModule
             ->mapColumns()
             ->mapForeignKeys()
             ->mapIndexes();
+
         return $this;
     }
 
@@ -96,18 +97,22 @@ class RequestModule
 
         return $this;
     }
+
     private function mapForeignKeys(): self
     {
         $this->rules = $this->rules->mergeRecursive($this->dto->foreignKeys->mapWithKeys(function (ForeignKeyConstraint $foreignKey) {
             $this->currentRules = new Collection();
             $this->currentColumn = $foreignKey;
             $this->setForeignKeyRules();
+
             return [
                 $this->currentColumn->getLocalColumns()[0] => $this->currentRules->filter()->all(),
             ];
         }));
+
         return $this;
     }
+
     private function mapIndexes(): self
     {
         $this->rules = $this->rules->mergeRecursive($this->dto->indexes->mapWithKeys(function (Index $index) {
@@ -119,8 +124,10 @@ class RequestModule
                 $this->currentColumn->getColumns()[0] => $this->currentRules->filter()->all(),
             ];
         }));
+
         return $this;
     }
+
     private function setColumnTypeRules(): self
     {
         $this->columnTypeAsRule = match (get_class($this->currentColumn->getType())) {
@@ -151,7 +158,7 @@ class RequestModule
 
         $typeRules = $columnTypes[$this->columnTypeAsRule] ?? null;
 
-        if (!$typeRules) {
+        if (! $typeRules) {
             return $this;
         }
 
@@ -168,7 +175,7 @@ class RequestModule
 
         $typeRules = $columnNames[$this->currentColumn->getName()] ?? null;
 
-        if (!$typeRules) {
+        if (! $typeRules) {
             return $this;
         }
 
@@ -178,9 +185,10 @@ class RequestModule
 
         return $this;
     }
+
     private function setForeignKeyRules(): self
     {
-        if (! $this->currentColumn instanceof ForeignKeyConstraint){
+        if (! $this->currentColumn instanceof ForeignKeyConstraint) {
             return $this;
         }
 
@@ -188,6 +196,7 @@ class RequestModule
 
         return $this;
     }
+
     private function makeRequestCommand(): self
     {
         $result = Artisan::call('make:module-request', [
@@ -233,10 +242,10 @@ class RequestModule
 
     private function setIndexRules(): static
     {
-        if (! $this->currentColumn instanceof Index){
+        if (! $this->currentColumn instanceof Index) {
             return $this;
         }
-        if ($this->currentColumn->isPrimary()){
+        if ($this->currentColumn->isPrimary()) {
             $this->currentRules->push("Rule::exists('{$this->dto->model->getTable()}' , '{$this->currentColumn->getColumns()[0]}')");
 
             return $this;
@@ -245,7 +254,4 @@ class RequestModule
 
         return $this;
     }
-
-
-
 }
