@@ -1,9 +1,11 @@
 <?php
 
-namespace Loffy\CreateLaravelModule\Modules;
+namespace Loffy\CreateLaravelModule\Modules\Request;
 
+use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
+use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Types\ArrayType;
 use Doctrine\DBAL\Types\AsciiStringType;
 use Doctrine\DBAL\Types\BigIntType;
@@ -28,9 +30,10 @@ use Exception;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
-use Loffy\CreateLaravelModule\ColumnSupport;
+use Illuminate\Validation\Rule;
 use Loffy\CreateLaravelModule\DTOs\ModuleDTO;
 use Loffy\CreateLaravelModule\Generators\ModuleGenerator;
+use Loffy\CreateLaravelModule\Support\ColumnSupport;
 
 class RequestModule
 {
@@ -38,14 +41,14 @@ class RequestModule
 
     private Collection $currentRules;
 
-    private Column $currentColumn;
+    private AbstractAsset $currentColumn;
 
     private string $columnTypeAsRule;
-
-    private string $generated;
+    private ModuleGenerator $generator;
 
     public function __construct(private readonly ModuleDTO $dto)
     {
+        $this->rules = new Collection();
     }
 
     public static function make(ModuleDTO $dto): self
@@ -64,7 +67,16 @@ class RequestModule
 
     private function setRules(): self
     {
-        $this->rules = $this->dto->getColumns()->mapWithKeys(function (Column $column) {
+        $this
+            ->mapColumns()
+            ->mapForeignKeys()
+            ->mapIndexes();
+        return $this;
+    }
+
+    private function mapColumns(): self
+    {
+        $this->rules = $this->rules->merge($this->dto->columns->mapWithKeys(function (Column $column) {
             if (ColumnSupport::isIgnored($column)) {
                 return [];
             }
@@ -80,15 +92,35 @@ class RequestModule
             return [
                 $this->currentColumn->getName() => $this->currentRules->filter()->all(),
             ];
-        });
-
-        $this->rules = $this->rules->merge(
-            $this->dto->foreignKeys->mapWithKeys(fn (ForeignKeyConstraint $key) => [$key->getLocalColumns()[0] => ['required', "exists:{$key->getForeignTableName()},{$key->getForeignColumns()[0]}"]])
-        );
+        }));
 
         return $this;
     }
+    private function mapForeignKeys(): self
+    {
+        $this->rules = $this->rules->mergeRecursive($this->dto->foreignKeys->mapWithKeys(function (ForeignKeyConstraint $foreignKey) {
+            $this->currentRules = new Collection();
+            $this->currentColumn = $foreignKey;
+            $this->setForeignKeyRules();
+            return [
+                $this->currentColumn->getLocalColumns()[0] => $this->currentRules->filter()->all(),
+            ];
+        }));
+        return $this;
+    }
+    private function mapIndexes(): self
+    {
+        $this->rules = $this->rules->mergeRecursive($this->dto->indexes->mapWithKeys(function (Index $index) {
+            $this->currentRules = new Collection();
+            $this->currentColumn = $index;
+            $this->setIndexRules();
 
+            return [
+                $this->currentColumn->getColumns()[0] => $this->currentRules->filter()->all(),
+            ];
+        }));
+        return $this;
+    }
     private function setColumnTypeRules(): self
     {
         $this->columnTypeAsRule = match (get_class($this->currentColumn->getType())) {
@@ -119,7 +151,7 @@ class RequestModule
 
         $typeRules = $columnTypes[$this->columnTypeAsRule] ?? null;
 
-        if (! $typeRules) {
+        if (!$typeRules) {
             return $this;
         }
 
@@ -136,7 +168,7 @@ class RequestModule
 
         $typeRules = $columnNames[$this->currentColumn->getName()] ?? null;
 
-        if (! $typeRules) {
+        if (!$typeRules) {
             return $this;
         }
 
@@ -146,13 +178,20 @@ class RequestModule
 
         return $this;
     }
+    private function setForeignKeyRules(): self
+    {
+        if (! $this->currentColumn instanceof ForeignKeyConstraint){
+            return $this;
+        }
 
+        $this->currentRules->push("Rule::exists('{$this->currentColumn->getForeignTableName()}','{$this->currentColumn->getForeignColumns()[0]}')");
+
+        return $this;
+    }
     private function makeRequestCommand(): self
     {
-        $nameSpace = $this->dto->getNamespace() ? $this->dto->getNamespace().'/' : '';
-        $result = Artisan::call('make:request', [
-            'name' => "$nameSpace{$this->dto->getBaseModelName()}Request",
-            '--force' => true,
+        $result = Artisan::call('make:module-request', [
+            'name' => "{$this->dto->relativeNamespace}\\{$this->dto->getModelName()}Request",
         ]);
 
         if ($result !== 0) {
@@ -164,23 +203,49 @@ class RequestModule
 
     private function generateRules(): self
     {
-        $this->generated = ModuleGenerator::make($this->rules)->generateRequestRules();
+        $this->generator = ModuleGenerator::make($this->rules)->generateRequestRules();
 
         return $this;
     }
 
     private function addRulesToRequestFile(): self
     {
-        $requestFile = File::get(app_path("Http/Requests/{$this->dto->getNamespace()}/{$this->dto->getBaseModelName()}Request.php"));
+        $fullQualifiedRequest = app_path("Http/Requests/{$this->dto->relativeNamespace}/{$this->dto->getModelName()}Request.php");
+
+        $requestFile = File::get($fullQualifiedRequest);
 
         $requestFile = str_replace(
             'return [',
-            "return [\n\t\t\t$this->generated,",
+            "return [\n\t\t\t{$this->generator->getGenerated()},",
             $requestFile
         );
 
-        File::put(app_path("Http/Requests/{$this->dto->getBaseModelName()}Request.php"), $requestFile);
+        $requestFile = str_replace(
+            'use Illuminate\Foundation\Http\FormRequest;',
+            "use Illuminate\Foundation\Http\FormRequest;\n{$this->generator->getImports()}",
+            $requestFile
+        );
+
+        File::put($fullQualifiedRequest, $requestFile);
 
         return $this;
     }
+
+    private function setIndexRules(): static
+    {
+        if (! $this->currentColumn instanceof Index){
+            return $this;
+        }
+        if ($this->currentColumn->isPrimary()){
+            $this->currentRules->push("Rule::exists('{$this->dto->model->getTable()}' , '{$this->currentColumn->getColumns()[0]}')");
+
+            return $this;
+        }
+        $this->currentRules->push("Rule::unique('{$this->dto->model->getTable()}' , '{$this->currentColumn->getColumns()[0]}')");
+
+        return $this;
+    }
+
+
+
 }

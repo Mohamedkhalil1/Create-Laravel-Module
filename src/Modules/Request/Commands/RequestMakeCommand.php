@@ -1,17 +1,16 @@
 <?php
 
-namespace Loffy\CreateLaravelModule\Commands;
+namespace Loffy\CreateLaravelModule\Modules\Request\Commands;
 
 use Illuminate\Console\GeneratorCommand;
-use Illuminate\Foundation\Console\RequestMakeCommand;
 
-class ModuleRequestMakeCommand extends GeneratorCommand
+class RequestMakeCommand extends GeneratorCommand
 {
     protected $name = 'make:module-request';
 
     protected function getStub(): string
     {
-        return __DIR__ . '/stubs/request.stub';
+        return __DIR__ . '/../Stub/request.stub';
     }
 
     protected function getDefaultNamespace($rootNamespace): string

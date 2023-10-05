@@ -1,6 +1,6 @@
 <?php
 
-namespace Loffy\CreateLaravelModule\Modules;
+namespace Loffy\CreateLaravelModule\Modules\Resource;
 
 use Exception;
 use Illuminate\Support\Facades\File;

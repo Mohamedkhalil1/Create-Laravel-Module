@@ -53,6 +53,8 @@ class DoctrineMapper
         $this->columns = collect($this->doctrineTableDetails->getColumns())
             ->reject(fn ($column) => $this->foreignKeys->contains(fn (ForeignKeyConstraint $foreignKey) => $foreignKey->getLocalColumns()[0] === $column->getName()));
 
+        $this->indexes = collect($this->doctrineTableDetails->getIndexes());
+
         return $this;
     }
 
@@ -64,5 +66,10 @@ class DoctrineMapper
     public function getColumns(): Collection
     {
         return $this->columns;
+    }
+
+    public function getIndexes(): Collection
+    {
+        return $this->indexes;
     }
 }

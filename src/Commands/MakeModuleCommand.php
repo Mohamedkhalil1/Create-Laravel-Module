@@ -4,10 +4,11 @@ namespace Loffy\CreateLaravelModule\Commands;
 
 use Illuminate\Console\Command;
 use Loffy\CreateLaravelModule\DTOs\ModuleDTO;
-use Loffy\CreateLaravelModule\Modules\ControllerModule;
-use Loffy\CreateLaravelModule\Modules\RequestModule;
-use Loffy\CreateLaravelModule\Modules\ResourceModule;
-use Loffy\CreateLaravelModule\Modules\RouteModule;
+use Loffy\CreateLaravelModule\Modules\Controller\ControllerModule;
+use Loffy\CreateLaravelModule\Modules\MasterModule;
+use Loffy\CreateLaravelModule\Modules\Request\RequestModule;
+use Loffy\CreateLaravelModule\Modules\Resource\ResourceModule;
+use Loffy\CreateLaravelModule\Modules\Route\RouteModule;
 use Loffy\CreateLaravelModule\Validators\Validator;
 
 class MakeModuleCommand extends Command
@@ -22,27 +23,19 @@ class MakeModuleCommand extends Command
 
     protected string $model;
 
-    public function __construct()
-    {
-        parent::__construct();
-        $this->dto = new ModuleDTO();
-        $this->validator = Validator::make();
-    }
-
     public function handle(): int
     {
+        $this->validator = Validator::make();
+        $this->dto = new ModuleDTO(resolve($this->validator->getModel($this->argument('model'))));
         if ($this->hasErrors()) {
             return self::FAILURE;
         }
+        MasterModule::make($this->dto)
+            ->createRoutes()
+            ->createController()
+            ->createRequest()
+            ->createResource();
 
-        $this->dto->setAttributes($this->validator->getModel($this->argument('model')));
-
-        RequestModule::make($this->dto)->handle();
-        ControllerModule::make($this->dto)->handle();
-        RouteModule::make($this->dto)->handle();
-        ResourceModule::make($this->dto)->handle();
-
-        //      $this->addTranslations();
         $this->info('Module created successfully :)');
         $this->info('Don\'t forget to add columns translations in validation.php');
 
@@ -53,14 +46,14 @@ class MakeModuleCommand extends Command
     {
         $validator = Validator::make();
 
-        if (! empty($validator->getErrorFiles())) {
+        if (!empty($validator->getErrorFiles())) {
             $this->warn('Please make sure the following files exist!');
             $this->line(implode(PHP_EOL, $validator->getErrorFiles()));
 
             return true;
         }
 
-        if (! $validator->getModel($this->argument('model'))) {
+        if (!$validator->getModel($this->argument('model'))) {
             $this->warn('Model not found!');
 
             return true;
