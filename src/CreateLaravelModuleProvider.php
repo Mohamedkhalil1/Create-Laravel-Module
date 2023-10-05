@@ -16,7 +16,7 @@ class CreateLaravelModuleProvider extends PackageServiceProvider
             ->hasConfigFile()
             ->hasCommands([
                 MakeModuleCommand::class,
-                ModuleRequestMakeCommand::class
+                ModuleRequestMakeCommand::class,
             ]);
     }
 }
