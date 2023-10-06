@@ -5,16 +5,18 @@ namespace Loffy\CreateLaravelModule\DTOs;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use Illuminate\Support\Stringable;
 use Loffy\CreateLaravelModule\Mappers\DoctrineMapper;
 
 class ModuleDTO
 {
-
     public readonly Collection $columns;
+
     public readonly Collection $foreignKeys;
+
     public readonly Collection $indexes;
+
     public readonly array $newTranslationWords;
+
     public readonly string $relativeNamespace;
 
     public function __construct(public readonly Model $model)
@@ -35,5 +37,4 @@ class ModuleDTO
     {
         return class_basename($this->model);
     }
-
 }

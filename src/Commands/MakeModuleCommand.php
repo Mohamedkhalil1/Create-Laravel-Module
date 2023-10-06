@@ -4,11 +4,7 @@ namespace Loffy\CreateLaravelModule\Commands;
 
 use Illuminate\Console\Command;
 use Loffy\CreateLaravelModule\DTOs\ModuleDTO;
-use Loffy\CreateLaravelModule\Modules\Controller\ControllerModule;
 use Loffy\CreateLaravelModule\Modules\MasterModule;
-use Loffy\CreateLaravelModule\Modules\Request\RequestModule;
-use Loffy\CreateLaravelModule\Modules\Resource\ResourceModule;
-use Loffy\CreateLaravelModule\Modules\Route\RouteModule;
 use Loffy\CreateLaravelModule\Validators\Validator;
 
 class MakeModuleCommand extends Command
@@ -39,14 +35,14 @@ class MakeModuleCommand extends Command
     {
         $validator = Validator::make();
 
-        if (!empty($validator->getErrorFiles())) {
+        if (! empty($validator->getErrorFiles())) {
             $this->warn('Please make sure the following files exist!');
             $this->line(implode(PHP_EOL, $validator->getErrorFiles()));
 
             return true;
         }
 
-        if (!$validator->getModel($this->argument('model'))) {
+        if (! $validator->getModel($this->argument('model'))) {
             $this->warn('Model not found!');
 
             return true;
