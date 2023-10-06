@@ -10,13 +10,32 @@ use Loffy\CreateLaravelModule\Modules\Route\RouteModule;
 
 class MasterModule
 {
+    private static array $options;
+
     public function __construct(private readonly ModuleDTO $dto)
     {
+        self::$options = config('module.options');
     }
+
 
     public static function make(ModuleDTO $dto): self
     {
         return new static($dto);
+    }
+
+
+    public function handle(): void
+    {
+        foreach (self::$options as $option => $value) {
+            if ($value) {
+                match ($option) {
+                    'route' => $this->createRoutes(),
+                    'controller' => $this->createController(),
+                    'request' => $this->createRequest(),
+                    'resource' => $this->createResource(),
+                };
+            }
+        }
     }
 
     public function createRoutes(): self

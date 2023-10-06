@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'options' => [
+        'request' => true,
+        'controller' => true,
+        'resource' => true,
+        'route' => true,
+    ],
     'request' => [
         'defaults' => [
             'string' => [

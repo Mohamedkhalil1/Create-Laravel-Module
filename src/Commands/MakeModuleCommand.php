@@ -16,12 +16,9 @@ class MakeModuleCommand extends Command
     protected $signature = 'make:module {model}';
 
     protected $description = 'Make module';
-
     protected ModuleDTO $dto;
 
     protected Validator $validator;
-
-    protected string $model;
 
     public function handle(): int
     {
@@ -30,11 +27,7 @@ class MakeModuleCommand extends Command
         if ($this->hasErrors()) {
             return self::FAILURE;
         }
-        MasterModule::make($this->dto)
-            ->createRoutes()
-            ->createController()
-            ->createRequest()
-            ->createResource();
+        MasterModule::make($this->dto)->handle();
 
         $this->info('Module created successfully :)');
         $this->info('Don\'t forget to add columns translations in validation.php');
