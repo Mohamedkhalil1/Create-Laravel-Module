@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\File;
 class RequestGenerator
 {
     private Collection $data;
+
     private Collection $imports;
+
     private readonly string $generated;
 
     public function __construct(Collection $data)
@@ -33,15 +35,17 @@ class RequestGenerator
 
     private function generateRule(array $rules, string $ruleName): string
     {
-        $rules = collect($rules)->map(function (string $rule){
+        $rules = collect($rules)->map(function (string $rule) {
             if (str_contains($rule, 'Rule::')) {
                 $this->imports->push('use Illuminate\Validation\Rule;');
+
                 return $rule;
             }
+
             return "'$rule'";
         })->all();
 
-        return "'$ruleName' => "."[" . implode(", ", $rules)."]";
+        return "'$ruleName' => ".'['.implode(', ', $rules).']';
     }
 
     public function addRulesToRequestFile(string $fullQualifiedRequest): self
@@ -64,5 +68,4 @@ class RequestGenerator
 
         return $this;
     }
-
 }

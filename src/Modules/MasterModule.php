@@ -17,12 +17,10 @@ class MasterModule
         self::$options = config('module.options');
     }
 
-
     public static function make(ModuleDTO $dto): self
     {
         return new static($dto);
     }
-
 
     public function handle(): void
     {

@@ -3,8 +3,6 @@
 namespace Loffy\CreateLaravelModule\Modules\Request\Mapper;
 
 use Doctrine\DBAL\Schema\Column;
-use Doctrine\DBAL\Schema\ForeignKeyConstraint;
-use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Types\ArrayType;
 use Doctrine\DBAL\Types\AsciiStringType;
 use Doctrine\DBAL\Types\BigIntType;
@@ -71,12 +69,14 @@ class ColumnToRequestMapper
             $this->column->getName() => $this->currentRules->filter()->all(),
         ];
     }
+
     private function setColumnConstraints(): self
     {
         $this->currentRules->push($this->column->getNotnull() ? 'required' : 'nullable');
 
         return $this;
     }
+
     private function setColumnTypeRules(): self
     {
         $this->columnTypeAsRule = match (get_class($this->column->getType())) {
@@ -100,7 +100,7 @@ class ColumnToRequestMapper
 
         $typeRules = $columnTypes[$this->columnTypeAsRule] ?? null;
 
-        if (!$typeRules) {
+        if (! $typeRules) {
             return $this;
         }
 
@@ -117,7 +117,7 @@ class ColumnToRequestMapper
 
         $typeRules = $columnNames[$this->column->getName()] ?? null;
 
-        if (!$typeRules) {
+        if (! $typeRules) {
             return $this;
         }
 
