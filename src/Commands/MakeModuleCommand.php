@@ -12,6 +12,7 @@ class MakeModuleCommand extends Command
     protected $signature = 'make:module {model}';
 
     protected $description = 'Make module';
+
     protected ModuleDTO $dto;
 
     protected Validator $validator;

@@ -3,7 +3,6 @@
 namespace Loffy\CreateLaravelModule\Modules\Request\Mapper;
 
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
-use Doctrine\DBAL\Schema\Index;
 use Illuminate\Support\Collection;
 
 class ForeignKeyToRequestMapper
@@ -28,6 +27,7 @@ class ForeignKeyToRequestMapper
     private function setRules(): self
     {
         $this->currentRules->push("Rule::exists('{$this->foreignKey->getForeignTableName()}','{$this->foreignKey->getForeignColumns()[0]}')");
+
         return $this;
     }
 
