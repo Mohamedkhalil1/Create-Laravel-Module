@@ -9,7 +9,6 @@ use Exception;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Loffy\CreateLaravelModule\DTOs\ModuleDTO;
-use Loffy\CreateLaravelModule\Generators\ModuleGenerator;
 use Loffy\CreateLaravelModule\Modules\Request\Generator\RequestGenerator;
 use Loffy\CreateLaravelModule\Modules\Request\Mapper\ColumnToRequestMapper;
 use Loffy\CreateLaravelModule\Modules\Request\Mapper\ForeignKeyToRequestMapper;
@@ -55,6 +54,7 @@ class RequestModule
 
         return $this;
     }
+
     private function mapColumns(): self
     {
         $this->rules = $this->rules->mergeRecursive($this->dto->columns->mapWithKeys(function (Column $column) {
@@ -69,6 +69,7 @@ class RequestModule
         $this->rules = $this->rules->mergeRecursive($this->dto->foreignKeys->mapWithKeys(function (ForeignKeyConstraint $foreignKey) {
             return ForeignKeyToRequestMapper::make($foreignKey)->handle();
         }));
+
         return $this;
     }
 
@@ -77,13 +78,12 @@ class RequestModule
         $this->rules = $this->rules->mergeRecursive($this->dto->indexes->mapWithKeys(function (Index $index) {
             return IndexToRequestMapper::make($index, $this->dto->model->getTable())->handle();
         }));
+
         return $this;
     }
-
 
     private function getRequestFile(): string
     {
         return app_path("Http/Requests/{$this->dto->relativeNamespace}/{$this->dto->getModelName()}Request.php");
     }
-
 }

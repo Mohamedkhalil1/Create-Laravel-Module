@@ -26,13 +26,13 @@ class IndexToRequestMapper
 
     private function setRules(): self
     {
-        if ($this->index->isPrimary()){
+        if ($this->index->isPrimary()) {
             $this->currentRules->push("Rule::exists('{$this->table}' , '{$this->index->getColumns()[0]}')");
 
             return $this;
         }
-        
-        if ($this->index->isUnique()){
+
+        if ($this->index->isUnique()) {
             $this->currentRules->push("Rule::unique('{$this->table}' , '{$this->index->getColumns()[0]}')");
 
             return $this;
