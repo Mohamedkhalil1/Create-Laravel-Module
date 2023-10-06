@@ -31,7 +31,13 @@ class IndexToRequestMapper
 
             return $this;
         }
-        $this->currentRules->push("Rule::unique('{$this->table}' , '{$this->index->getColumns()[0]}')");
+        
+        if ($this->index->isUnique()){
+            $this->currentRules->push("Rule::unique('{$this->table}' , '{$this->index->getColumns()[0]}')");
+
+            return $this;
+        }
+
         return $this;
     }
 

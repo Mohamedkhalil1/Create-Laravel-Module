@@ -74,6 +74,7 @@ class ColumnToRequestMapper
     private function setColumnConstraints(): self
     {
         $this->currentRules->push($this->column->getNotnull() ? 'required' : 'nullable');
+        $this->currentRules->push($this->column->getUnsigned() ? 'unsigned' : null);
 
         return $this;
     }

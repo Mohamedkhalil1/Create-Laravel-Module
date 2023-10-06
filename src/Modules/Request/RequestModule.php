@@ -18,7 +18,6 @@ use Loffy\CreateLaravelModule\Modules\Request\Mapper\IndexToRequestMapper;
 class RequestModule
 {
     private Collection $rules;
-    private ModuleGenerator $generator;
 
     public function __construct(private readonly ModuleDTO $dto)
     {
