@@ -2,112 +2,39 @@
 
 namespace Loffy\CreateLaravelModule\DTOs;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Support\Stringable;
+use Loffy\CreateLaravelModule\Mappers\DoctrineMapper;
 
 class ModuleDTO
 {
-    private string $model;
+    public readonly Collection $columns;
 
-    private string $baseModelName;
+    public readonly Collection $foreignKeys;
 
-    private string $namespace;
+    public readonly Collection $indexes;
 
-    private string $pluralBaseModelName;
+    public readonly array $newTranslationWords;
 
-    private Collection $columns;
+    public readonly string $relativeNamespace;
 
-    private array $newTranslationWords = [];
-
-    private Stringable $snakeCaseTitle;
-
-    private Stringable $singularSnakeCaseTitle;
-
-    private Stringable $title;
-
-    private Stringable $titleSingular;
-
-    public function setAttributes($model): void
+    public function __construct(public readonly Model $model)
     {
-        $this->model = $model;
-        $this->baseModelName = class_basename($this->model);
+        $mapper = DoctrineMapper::make($model->getTable());
+        $this->columns = $mapper->getColumns();
+        $this->foreignKeys = $mapper->getForeignKeys();
+        $this->indexes = $mapper->getIndexes();
         $this->setNamespace();
-        $this->pluralBaseModelName = Str::plural($this->baseModelName);
-        $this->setColumns();
-        $this->snakeCaseTitle = str($this->pluralBaseModelName)->snake(' ');
-        $this->singularSnakeCaseTitle = str($this->pluralBaseModelName)->snake()->singular();
-        $this->title = $this->snakeCaseTitle->headline();
-        $this->titleSingular = $this->title->singular();
-
-    }
-
-    public function getModel(): string
-    {
-        return $this->model;
-    }
-
-    public function getBaseModelName(): string
-    {
-        return $this->baseModelName;
-    }
-
-    public function getColumns(): Collection
-    {
-        return $this->columns;
-    }
-
-    public function getNamespace(): string
-    {
-        return $this->namespace;
-    }
-
-    public function setColumns(): void
-    {
-        $this->columns = DB::table('information_schema.COLUMNS')
-            ->select('COLUMN_NAME', 'IS_NULLABLE', 'COLUMN_TYPE')
-            ->where('TABLE_SCHEMA', '=', DB::getDatabaseName())
-            ->where('TABLE_NAME', '=', (new $this->model)->getTable())
-            ->whereNotIn('COLUMN_NAME', ['id', 'created_at', 'updated_at', 'deleted_at'])
-            ->orderBy('ORDINAL_POSITION')
-            ->get();
     }
 
     private function setNamespace(): void
     {
-        $model = $this->model;
-        $parts = explode('\\', $model);
-        $this->namespace = $parts[count($parts) - 2];
+        $this->relativeNamespace = Str::after($this->model->getMorphClass(), 'App\\Models\\');
     }
 
-    public function getPluralBaseModelName(): string
+    public function getModelName(): string
     {
-        return $this->pluralBaseModelName;
-    }
-
-    public function getNewTranslationWords(): array
-    {
-        return $this->newTranslationWords;
-    }
-
-    public function getSnakeCaseTitle(): Stringable
-    {
-        return $this->snakeCaseTitle;
-    }
-
-    public function getSingularSnakeCaseTitle(): Stringable
-    {
-        return $this->singularSnakeCaseTitle;
-    }
-
-    public function getTitle(): Stringable
-    {
-        return $this->title;
-    }
-
-    public function getTitleSingular(): Stringable
-    {
-        return $this->titleSingular;
+        return class_basename($this->model);
     }
 }
