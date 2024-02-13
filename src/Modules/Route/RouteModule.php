@@ -1,6 +1,6 @@
 <?php
 
-namespace Loffy\CreateLaravelModule\Modules;
+namespace Loffy\CreateLaravelModule\Modules\Route;
 
 use Illuminate\Support\Facades\File;
 use Loffy\CreateLaravelModule\DTOs\ModuleDTO;

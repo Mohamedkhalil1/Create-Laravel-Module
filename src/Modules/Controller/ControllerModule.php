@@ -1,6 +1,6 @@
 <?php
 
-namespace Loffy\CreateLaravelModule\Modules;
+namespace Loffy\CreateLaravelModule\Modules\Controller;
 
 use Exception;
 use Illuminate\Support\Facades\File;
@@ -8,7 +8,7 @@ use Loffy\CreateLaravelModule\DTOs\ModuleDTO;
 
 class ControllerModule
 {
-    public function __construct(private ModuleDTO $dto)
+    public function __construct(private readonly ModuleDTO $dto)
     {
     }
 
